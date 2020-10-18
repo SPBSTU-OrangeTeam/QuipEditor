@@ -1,8 +1,7 @@
  {
   "*": {
       "*": [
-      	"python-six",
-        "websocket-client",
+      	"python-six"
       ]
   }
 }
