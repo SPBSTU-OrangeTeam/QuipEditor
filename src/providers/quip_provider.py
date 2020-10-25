@@ -46,4 +46,3 @@ class QuipProvider:
         for folder in user["group_folder_ids"]:
             children.append(self.__add_folder(folder))
         return TreeNode("root", "root", None, children)
-
