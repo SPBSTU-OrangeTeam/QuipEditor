@@ -4,7 +4,7 @@ from ..deps.quip import QuipClient
 
 class QuipProvider:
     def __init__(self):
-        self.quip_client = quip.QuipClient(
+        self.quip_client = QuipClient(
             access_token=sublime.load_settings("SublimeQuip.sublime-settings").get("quip_token", "NOT_FOUND"),
             base_url="https://platform.quip.com")
 
