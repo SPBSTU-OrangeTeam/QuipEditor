@@ -1,3 +1,4 @@
 [
-  { "caption": "Quip: Open Recent Document", "command": "open_recent_document" }
+  { "caption": "Quip: Open Recent Document", "command": "open_recent_document" },
+  { "caption": "Quip: Show File Tree", "command": "show_file_tree"}
 ]
