@@ -16,7 +16,8 @@ class InsertrandomdocumenthtmlCommand(sublime_plugin.TextCommand):
 	def run(self, edit):
 		quipprovider = quip_provider.QuipProvider()
 		thread_ids = quipprovider.get_document_thread_ids()
-		self.view.insert(edit, 0, quipprovider.get_document_content(thread_ids.pop()))
+		id = thread_ids.pop()
+		self.view.insert(edit, 0, quipprovider.get_document_content(id))
 
 class Printquipfiletree(sublime_plugin.TextCommand):
 	def __print_tree(self, tree_node, prefix):
@@ -36,3 +37,20 @@ class Printquipfiletree(sublime_plugin.TextCommand):
 		print(file_tree)
 		print(string_tree)
 		self.view.insert(edit, 0, string_tree)
+
+
+class UploadChangesOnSave(sublime_plugin.EventListener):
+	
+	def on_pre_save(self, view):
+		quip = quip_provider.QuipProvider()
+		threads = quip.get_document_thread_ids()
+		id = threads.pop()
+
+		line = view.substr(view.line(view.sel()[0]))
+		html = "<p>" + line + "</p>"
+		
+		quip.edit_document(thread_id=id, content=html)
+
+
+
+
