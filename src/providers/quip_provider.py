@@ -1,6 +1,6 @@
 import sublime
 from ..deps.quip import QuipClient
-from ..quip_tree.tree_node import TreeNode
+from ..quip_entity.tree_node import TreeNode
 
 
 class QuipProvider:
