@@ -2,6 +2,8 @@ import sublime
 import sublime_plugin
 from .src.providers import quip_provider
 
+recent_id = 0
+
 class OpenRecentDocumentCommand(sublime_plugin.WindowCommand):
 	def run(self):
 		view = self.window.new_file()
@@ -17,6 +19,8 @@ class InsertrandomdocumenthtmlCommand(sublime_plugin.TextCommand):
 		quipprovider = quip_provider.QuipProvider()
 		thread_ids = quipprovider.get_document_thread_ids()
 		id = thread_ids.pop()
+		global recent_id
+		recent_id = id
 		self.view.insert(edit, 0, quipprovider.get_document_content(id))
 
 class Printquipfiletree(sublime_plugin.TextCommand):
@@ -41,13 +45,18 @@ class UploadChangesOnSave(sublime_plugin.EventListener):
 	
 	def on_pre_save(self, view):
 		quip = quip_provider.QuipProvider()
-		threads = quip.get_document_thread_ids()
-		id = threads.pop()
-
-		line = view.substr(view.line(view.sel()[0]))
-		html = "<p>" + line + "</p>"
+		#threads = quip.get_document_thread_ids()
+		#id = threads.pop()
 		
-		quip.edit_document(thread_id=id, content=html)
+		line = view.substr(view.full_line(view.sel()[0]))
+		if line.startswith('<') and line.endswith('>\n'):
+			html = line
+		else:
+			html = "<p>" + line + "</p>"
+
+		global recent_id
+		if recent_id:
+			quip.edit_document(thread_id=recent_id, content=html)
 
 
 
