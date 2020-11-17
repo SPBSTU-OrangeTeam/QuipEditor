@@ -79,7 +79,5 @@ class Printquipfiletree(sublime_plugin.TextCommand):
 		quipprovider = quip_provider.QuipProvider()
 		file_tree = quipprovider.get_thread_tree()
 		string_tree = self.__print_tree(file_tree, "")
-		print(file_tree)
-		print(string_tree)
 		self.view.insert(edit, 0, string_tree)
 
