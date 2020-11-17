@@ -1,8 +1,21 @@
 import sublime
 import sublime_plugin
 from .src.providers import quip_provider
+from sublime import View
 
-recent_id = 0
+
+class CurrentDocument:
+
+	def __init__(self, id: int = 0, name: str = "", thread: int = 0, view: View = None):
+		self.id = view.id() if view else id
+		self.name = view.name() if view else name
+		self.thread = thread
+
+	def check(self, view: View) -> bool:
+		return self.id == view.id()
+	
+
+current = CurrentDocument()
 
 class OpenRecentDocumentCommand(sublime_plugin.WindowCommand):
 	def run(self):
@@ -19,8 +32,8 @@ class InsertrandomdocumenthtmlCommand(sublime_plugin.TextCommand):
 		quipprovider = quip_provider.QuipProvider()
 		thread_ids = quipprovider.get_document_thread_ids()
 		id = thread_ids.pop()
-		global recent_id
-		recent_id = id
+		global current
+		current = CurrentDocument(view=self.view, thread=id)
 		self.view.insert(edit, 0, quipprovider.get_document_content(id))
 
 class Printquipfiletree(sublime_plugin.TextCommand):
@@ -44,19 +57,19 @@ class Printquipfiletree(sublime_plugin.TextCommand):
 class UploadChangesOnSave(sublime_plugin.EventListener):
 	
 	def on_pre_save(self, view):
+		global current
+		if not current.check(view):
+			return
+
 		quip = quip_provider.QuipProvider()
-		#threads = quip.get_document_thread_ids()
-		#id = threads.pop()
-		
 		line = view.substr(view.full_line(view.sel()[0]))
 		if line.startswith('<') and line.endswith('>\n'):
 			html = line
 		else:
 			html = "<p>" + line + "</p>"
 
-		global recent_id
-		if recent_id:
-			quip.edit_document(thread_id=recent_id, content=html)
+		if current.thread:
+			quip.edit_document(thread_id=current.thread, content=html)
 
 
 
