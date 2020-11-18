@@ -42,7 +42,6 @@ class InsertrandomdocumenthtmlCommand(sublime_plugin.TextCommand):
 		quipprovider = quip_provider.QuipProvider()
 		thread_ids = quipprovider.get_document_thread_ids()
 		id = thread_ids.pop()
-		global current
 		current.add(view=self.view, thread=id)
 		self.view.insert(edit, 0, quipprovider.get_document_content(id))
 
@@ -67,7 +66,6 @@ class Printquipfiletree(sublime_plugin.TextCommand):
 class UploadChangesOnSave(sublime_plugin.EventListener):
 	
 	def on_pre_save(self, view):
-		global current
 		if not current.check(view=view):
 			return
 
