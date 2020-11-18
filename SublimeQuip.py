@@ -4,18 +4,28 @@ from .src.providers import quip_provider
 from sublime import View
 
 
-class CurrentDocument:
+class CurrentManager:
 
-	def __init__(self, id: int = 0, name: str = "", thread: int = 0, view: View = None):
-		self.id = view.id() if view else id
-		self.name = view.name() if view else name
-		self.thread = thread
+	def __init__(self):
+		self._threads = dict()
 
-	def check(self, view: View) -> bool:
-		return self.id == view.id()
-	
+	def add(self, thread: int, view: View = None, view_id: int = 0) -> (int, bool):
+		id = view.id() if view else view_id
+		if not id:
+			return 0, False
+		overwrite = self.check(view_id=id)
+		self._threads[id] = thread
+		print(thread)
+		return id, overwrite
 
-current = CurrentDocument()
+	def get(self, view: View = None, view_id: int = 0) -> str:
+		id = view.id() if view else view_id
+		return self._threads.get(id, 0)
+
+	def check(self, view: View = None, view_id: int = 0) -> bool:
+		return (view.id() if view else view_id) in self._threads.keys()
+
+current = CurrentManager()
 
 class OpenRecentDocumentCommand(sublime_plugin.WindowCommand):
 	def run(self):
@@ -33,7 +43,7 @@ class InsertrandomdocumenthtmlCommand(sublime_plugin.TextCommand):
 		thread_ids = quipprovider.get_document_thread_ids()
 		id = thread_ids.pop()
 		global current
-		current = CurrentDocument(view=self.view, thread=id)
+		current.add(view=self.view, thread=id)
 		self.view.insert(edit, 0, quipprovider.get_document_content(id))
 
 class Printquipfiletree(sublime_plugin.TextCommand):
@@ -58,7 +68,7 @@ class UploadChangesOnSave(sublime_plugin.EventListener):
 	
 	def on_pre_save(self, view):
 		global current
-		if not current.check(view):
+		if not current.check(view=view):
 			return
 
 		quip = quip_provider.QuipProvider()
@@ -68,8 +78,7 @@ class UploadChangesOnSave(sublime_plugin.EventListener):
 		else:
 			html = "<p>" + line + "</p>"
 
-		if current.thread:
-			quip.edit_document(thread_id=current.thread, content=html)
+		quip.edit_document(thread_id=current.get(view), content=html)
 
 
 
