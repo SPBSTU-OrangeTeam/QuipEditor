@@ -15,7 +15,6 @@ class CurrentManager:
 			return 0, False
 		overwrite = self.check(view_id=id)
 		self._threads[id] = thread
-		print(thread)
 		return id, overwrite
 
 	def get(self, view: View = None, view_id: int = 0) -> str:
