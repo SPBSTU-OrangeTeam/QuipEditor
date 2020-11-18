@@ -58,9 +58,9 @@ class OpenChatCommand(sublime_plugin.WindowCommand):
 class SendChatMessageCommand(sublime_plugin.TextCommand):
 	def run(self, edit):
 		current_window = sublime.active_window()
-		current_window.show_input_panel('Enter chat message:', '', self._send_message, None, None)
+		current_window.show_input_panel('Enter chat message:', '', self.__send_message, None, None)
 
-	def _send_message(self, message):
+	def __send_message(self, message):
 		with open(comments, 'a+') as chat:
 			chat.write('User: ' + message + '\n')
 
