@@ -44,7 +44,7 @@ class Printquipfiletree(sublime_plugin.TextCommand):
 class UploadChangesOnSave(sublime_plugin.EventListener):
 	
 	def on_pre_save(self, view):
-		if not current.check(view=view):
+		if not current.contains(view=view):
 			return
 
 		quip = quip_provider.QuipProvider()

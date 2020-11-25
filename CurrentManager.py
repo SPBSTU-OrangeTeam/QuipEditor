@@ -9,7 +9,7 @@ class CurrentManager:
         id = view.id() if view else view_id
         if not id:
             return 0, False
-        overwrite = self.check(view_id=id)
+        overwrite = self.contains(view_id=id)
         self._threads[id] = thread
         return id, overwrite
 
@@ -17,5 +17,5 @@ class CurrentManager:
         id = view.id() if view else view_id
         return self._threads.get(id, 0)
 
-    def check(self, view: View = None, view_id: int = 0) -> bool:
+    def contains(self, view: View = None, view_id: int = 0) -> bool:
         return (view.id() if view else view_id) in self._threads.keys()
