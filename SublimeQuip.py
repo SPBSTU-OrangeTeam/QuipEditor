@@ -1,6 +1,9 @@
 import sublime
 import sublime_plugin
 from .src.providers import quip_provider
+from .CurrentManager import CurrentManager
+
+current = CurrentManager()
 
 import os
 
@@ -28,7 +31,9 @@ class InsertrandomdocumenthtmlCommand(sublime_plugin.TextCommand):
 	def run(self, edit):
 		quipprovider = quip_provider.QuipProvider()
 		thread_ids = quipprovider.get_document_thread_ids()
-		self.view.insert(edit, 0, quipprovider.get_document_content(thread_ids.pop()))
+		id = thread_ids.pop()
+		current.add(view=self.view, thread=id)
+		self.view.insert(edit, 0, quipprovider.get_document_content(id))
 
 class OpenChatCommand(sublime_plugin.WindowCommand):
 	def run(self):
@@ -81,3 +86,18 @@ class Printquipfiletree(sublime_plugin.TextCommand):
 		string_tree = self.__print_tree(file_tree, "")
 		self.view.insert(edit, 0, string_tree)
 
+
+class UploadChangesOnSave(sublime_plugin.EventListener):
+	
+	def on_pre_save(self, view):
+		if not current.contains(view=view):
+			return
+
+		quip = quip_provider.QuipProvider()
+		line = view.substr(view.full_line(view.sel()[0]))
+		if line.startswith('<') and line.endswith('>\n'):
+			html = line
+		else:
+			html = "<p>" + line + "</p>"
+
+		quip.edit_document(thread_id=current.get(view), content=html)
