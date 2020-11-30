@@ -4,6 +4,7 @@ from ..quip_entity.tree_node import TreeNode
 
 
 class QuipProvider:
+
     def __init__(self):
         self.quip_client = QuipClient(
             access_token=sublime.load_settings("SublimeQuip.sublime-settings").get("quip_token", "NOT_FOUND"),
@@ -25,6 +26,30 @@ class QuipProvider:
     def edit_document(self, thread_id, content, content_type = "html", 
         operation = QuipClient.APPEND, section_id = None):
         return self.quip_client.edit_document(thread_id, content, operation, content_type, section_id)
+
+    def current_user(self):
+        return self.quip_client.get_authenticated_user()
+
+    def new_message(self, thread_id, content=None):
+        return self.quip_client.new_message(thread_id, content)
+
+    def get_recent_chats(self):
+        threads = self.quip_client.get_recent_threads()
+        return [
+            (id, threads[id]['thread']['title'])
+            for id in threads.keys()
+            if threads[id]['thread']['thread_class'] == 'channel' or \
+               threads[id]['thread']['thread_class'] == 'two_person_chat'
+        ]
+
+    def get_chat_messages(self, chat_id):
+        messages = [
+            message['author_name'] + ': ' + message['text']
+            for message in self.quip_client.get_messages(chat_id)
+            if message['visible']
+        ]
+        messages.reverse()
+        return messages
 
     def __add_folder(self, folder):
         folder_ids = list()
