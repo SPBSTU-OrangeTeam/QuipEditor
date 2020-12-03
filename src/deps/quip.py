@@ -66,10 +66,10 @@ except:
     # Can't change default encoding usually...
     pass
 
-#TODO Upgrade OpenSSL to >=1.1
-#try:
+# TODO Upgrade OpenSSL to >=1.1
+# try:
 #    ssl.PROTOCOL_TLSv1_1
-#except AttributeError:
+# except AttributeError:
 #    raise Exception(
 #        "Using the Quip API requires an SSL library that supports TLS versions "
 #        ">= 1.1; your Python + OpenSSL installation must be upgraded.")
