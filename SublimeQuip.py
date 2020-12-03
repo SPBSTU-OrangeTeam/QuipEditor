@@ -1,9 +1,12 @@
 import sublime
 import sublime_plugin
+import os
+
 from .src.providers import quip_provider
 from .CurrentManager import CurrentManager
 from .TabsManager import TabsManager
 from .TabsManager import FILE_TREE_TAB_ID
+
 
 COMMAND_OPEN_DOCUMENT = "open_recent_document"
 COMMAND_PRINT_QUIP_FILE_TREE = "print_quip_file_tree"
@@ -40,6 +43,71 @@ class ShowFileTreeCommand(sublime_plugin.WindowCommand):
 			view = tabs_manager.get_tab(FILE_TREE_TAB_ID)
 			self.window.focus_view(view)
 		view.run_command(COMMAND_PRINT_QUIP_FILE_TREE)
+
+class OpenChatCommand(sublime_plugin.WindowCommand):
+
+	quip = quip_provider.QuipProvider()
+	
+	def __init__(self, window):
+		super().__init__(window)
+
+	def run(self):
+		if hasattr(self, 'toggled') and self.toggled:
+			self.window.run_command('set_layout', {
+				"cols": [0, 1.0],
+				"rows": [0.0, 1.0],
+				"cells": [[0, 0, 1, 1]]
+			})
+			self.toggled = False
+			self.window.focus_view(self.chat)
+			if self.window.active_view() == self.chat:
+				self.chat.set_scratch(True)
+				self.window.run_command('close')
+			return
+
+		self.window.run_command('set_layout', {
+			"cols": [0, 0.70, 1.0],
+			"rows": [0.0, 1.0],
+			"cells": [[0, 0, 1, 1], [1, 0, 2, 1]]
+		})
+		self.__open_chat()
+
+	def __open_chat(self):
+		self.__load_recent_chats()
+		self.__load_chat_messages()
+		self.toggled = True
+		self.chat = sublime.active_window().new_file()
+
+		self.chat.settings().set('auto_indent', False)
+		self.chat.run_command("insert", {"characters": '\n'.join(self.chat_messages)})
+		self.chat.settings().erase('auto_indent')
+		
+		self.chat.set_name(self.chat_name)
+		self.chat.set_read_only(True)
+		current.set_chat(self.chat_id, self.chat)
+
+	def __load_recent_chats(self):
+		chats = self.quip.get_recent_chats()
+		self.chat_id, self.chat_name = chats.pop()
+
+	def __load_chat_messages(self):
+		self.chat_messages = self.quip.get_chat_messages(self.chat_id)
+
+
+class SendChatMessageCommand(sublime_plugin.TextCommand):
+	
+	quip = quip_provider.QuipProvider()
+	user = quip.current_user()
+
+	def run(self, edit):
+		current_window = sublime.active_window()
+		if current.chat:
+			current_window.show_input_panel('Enter chat message:', '', self.__send_message, None, None)
+
+	def __send_message(self, message):
+		messsage = self.user.get("name", "Me") + ': ' + message + '\n'
+		# Тут надо вставить сообщение в чат
+		self.quip.new_message(current.chat_id, message)
 
 class InsertRandomDocumentHtmlCommand(sublime_plugin.TextCommand):
 	def run(self, edit):
@@ -115,8 +183,3 @@ class UploadChangesOnSave(sublime_plugin.EventListener):
 
 	def on_pre_close(self, view):
 		tabs_manager.remove_tab_by_view(view)
-
-
-
-
-

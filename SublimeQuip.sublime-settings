@@ -4,5 +4,5 @@
 		"osx": ["urllib", "oscrypto", "curl"],
 		"linux": ["urllib", "oscrypto", "curl", "wget"]
 	},
-	"quip_token": "YOUR TOKEN HERE"
+	"quip_token": "YOUR API TOKEN"
 }
