@@ -1,10 +1,15 @@
 import sublime
 import sublime_plugin
 import json
+import os
 from .src.providers import quip_provider
 from .CurrentManager import CurrentManager
 from .TabsManager import TabsManager
 from .TabsManager import FILE_TREE_TAB_ID
+
+CACHE_DIRECTORY = sublime.cache_path() + '/QUIP'
+if not os.path.exists(CACHE_DIRECTORY):
+    os.makedirs(CACHE_DIRECTORY)
 
 COMMAND_OPEN_DOCUMENT = "open_recent_document"
 COMMAND_PRINT_QUIP_FILE_TREE = "print_quip_file_tree"
@@ -17,6 +22,7 @@ KEY_FILE_TREE_PHANTOM_SET = "file_tree_phantom_set"
 current = CurrentManager()
 tabs_manager = TabsManager()
 
+
 class OpenRecentDocumentCommand(sublime_plugin.WindowCommand):
 	def run(self, **args):
 		if args is not None and KEY_THREAD_ID in args.keys():
@@ -27,7 +33,9 @@ class OpenRecentDocumentCommand(sublime_plugin.WindowCommand):
 			else:
 				view = self.window.new_file()
 				tabs_manager.add_tab(thread_id, view)
+			view.retarget(CACHE_DIRECTORY + "/" + thread_id + ".html")
 			view.run_command(COMMAND_GET_SELECTED_DOCUMENT, args)
+			view.run_command('save')
 		else:
 			view = self.window.new_file()
 			view.run_command(COMMAND_GET_RANDOM_DOCUMENT)
