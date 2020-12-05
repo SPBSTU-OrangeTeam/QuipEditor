@@ -62,11 +62,12 @@ class OpenChatCommand(sublime_plugin.WindowCommand):
 		self.chat = sublime.active_window().new_file()
 
 		self.chat.settings().set('auto_indent', False)
-		self.chat.run_command("insert", {"characters": '\n'.join([message.text for message in self.chat_messages])})
+		self.chat.run_command("insert_chat", {"messages": [msg.to_json() for msg in self.chat_messages]})
 		self.chat.settings().erase('auto_indent')
 		
 		self.chat.set_name(self.chat_name)
 		self.chat.set_read_only(True)
+		self.chat.set_scratch(True)
 		current.set_chat(self.chat_id, self.chat)
 
 	def __load_recent_chats(self):
@@ -77,18 +78,28 @@ class OpenChatCommand(sublime_plugin.WindowCommand):
 		self.chat_messages = self.quip.get_messages(self.chat_id)
 
 
+class InsertChatCommand(sublime_plugin.TextCommand):
+
+	quip = quip_provider.QuipProvider()
+
+	def run(self, edit, messages):
+		result = ""
+		for message in messages:
+			result += "%s | %s [%s]%s: %s\n" % (message.get('author_id'), message.get('author_name'), 
+				message.get('timestamp'), " (edited)" if message.get('edited') else "", message.get('text'))
+		self.view.insert(edit, 0, result)
+
+
 class SendChatMessageCommand(sublime_plugin.TextCommand):
 	
-	quip = quip_provider.QuipProvider()
-	user = quip.current_user()
-
 	def run(self, edit):
 		current_window = sublime.active_window()
 		if current.chat:
 			current_window.show_input_panel('Enter chat message:', '', self.__send_message, None, None)
 
 	def __send_message(self, message):
-		messsage = self.user.get("name", "Me") + ': ' + message + '\n'
+		quip = quip_provider.QuipProvider()
+		messsage = quip.current_user().get("name", "Me") + ': ' + message + '\n'
 		# Тут надо вставить сообщение в чат
 		self.quip.send_message(current.chat_id, message)
 
