@@ -1,5 +1,6 @@
 import sublime
 import sublime_plugin
+import json
 from .src.providers import quip_provider
 from .CurrentManager import CurrentManager
 import os
@@ -61,7 +62,7 @@ class OpenChatCommand(sublime_plugin.WindowCommand):
 		self.chat = sublime.active_window().new_file()
 
 		self.chat.settings().set('auto_indent', False)
-		self.chat.run_command("insert", {"characters": '\n'.join(self.chat_messages)})
+		self.chat.run_command("insert", {"characters": '\n'.join([message.text for message in self.chat_messages])})
 		self.chat.settings().erase('auto_indent')
 		
 		self.chat.set_name(self.chat_name)
@@ -73,7 +74,7 @@ class OpenChatCommand(sublime_plugin.WindowCommand):
 		self.chat_id, self.chat_name = chats.pop()
 
 	def __load_chat_messages(self):
-		self.chat_messages = self.quip.get_chat_messages(self.chat_id)
+		self.chat_messages = self.quip.get_messages(self.chat_id)
 
 
 class SendChatMessageCommand(sublime_plugin.TextCommand):
@@ -89,7 +90,7 @@ class SendChatMessageCommand(sublime_plugin.TextCommand):
 	def __send_message(self, message):
 		messsage = self.user.get("name", "Me") + ': ' + message + '\n'
 		# Тут надо вставить сообщение в чат
-		self.quip.new_message(current.chat_id, message)
+		self.quip.send_message(current.chat_id, message)
 
 
 class Printquipfiletree(sublime_plugin.TextCommand):
@@ -124,3 +125,65 @@ class UploadChangesOnSave(sublime_plugin.EventListener):
 			html = "<p>" + line + "</p>"
 
 		quip.edit_document(thread_id=current.get(view), content=html)
+
+
+# Section with test commands!
+
+class ShowTestChatCommand(sublime_plugin.WindowCommand):
+	def run(self, **args):
+		view = self.window.new_file()
+		view.run_command("insert_test_chat")
+
+class ShowTestContactsCommand(sublime_plugin.WindowCommand):
+	def run(self, **args):				
+		view = self.window.new_file()
+		view.run_command("insert_test_contacts")
+
+def on_message(ws, message):
+    print("message:")
+    print(json.dumps(json.loads(message), indent=4))
+
+def on_error(ws, error):
+    print("error:")
+    print(error)
+
+def on_close(ws):
+    print("### connection closed ###")
+
+class OpenTestWebsocketCommand(sublime_plugin.WindowCommand):
+	def run(self, **args):				
+		quipprovider = quip_provider.QuipProvider()
+		# Not working because ssl lib obsolete
+		quipprovider.subscribe_messages(on_message=on_message, on_error=on_error, on_close=on_close)
+
+class InsertTestContactsCommand(sublime_plugin.TextCommand):
+	def __print_user(self, user):
+		# images does not work (need to investigate)
+		return "<div><img src=\"file://%s\" alt=\"n/a\"><span>%s</span></div>" % (user.profile_picture_path, user.name)
+
+	def run(self, edit):
+		string_tree = ""
+		quipprovider = quip_provider.QuipProvider()
+		user, friend_list = quipprovider.get_contacts()
+		string_tree += self.__print_user(user)
+		string_tree += "<ul>"
+		for friend in friend_list:
+			string_tree += "<li>%s</li>" % self.__print_user(friend)
+		string_tree += "</ul>"
+		phantom = sublime.Phantom(
+			region = self.view.visible_region(),
+			content = string_tree,
+			layout = sublime.LAYOUT_INLINE
+		)
+		sublime.PhantomSet(self.view, "chat_phantom_set").update([phantom, phantom])
+
+class InsertTestChatCommand(sublime_plugin.TextCommand):
+	def run(self, edit):
+		quipprovider = quip_provider.QuipProvider()
+		user, friend_list = quipprovider.get_contacts()
+		friend = friend_list.pop()
+		str_result = ""
+		for message in quipprovider.get_messages(friend.chat_thread_id):
+			str_result += "%s | %s [%s]%s: %s\n" % (message.author_id, 
+				message.author_name, message.timestamp, " (edited)" if message.edited else "", message.text)
+		self.view.insert(edit, 0, str_result)
