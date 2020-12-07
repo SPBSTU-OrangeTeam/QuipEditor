@@ -11,6 +11,7 @@ from ..quip_entity.user import User
 
 
 class QuipProvider:
+
     def __init__(self):
         self.quip_client = QuipClient(
             access_token=sublime.load_settings("SublimeQuip.sublime-settings").get("quip_token", "NOT_FOUND"),
@@ -34,6 +35,18 @@ class QuipProvider:
     def edit_document(self, thread_id, content, content_type="html",
                       operation=QuipClient.APPEND, section_id=None):
         return self.quip_client.edit_document(thread_id, content, operation, content_type, section_id)
+
+    def current_user(self):
+        return self.quip_client.get_authenticated_user()
+
+    def get_recent_chats(self):
+        threads = self.quip_client.get_recent_threads()
+        return [
+            (id, threads[id]['thread']['title'])
+            for id in threads.keys()
+            if threads[id]['thread']['thread_class'] == 'channel' or \
+               threads[id]['thread']['thread_class'] == 'two_person_chat'
+        ]
 
     def delete_document(self, thread_id):
         return self.quip_client.delete_thread(thread_id)

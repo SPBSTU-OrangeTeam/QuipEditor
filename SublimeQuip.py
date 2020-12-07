@@ -3,8 +3,11 @@ import sublime_plugin
 import json
 from .src.providers import quip_provider
 from .CurrentManager import CurrentManager
+import os
+
 
 current = CurrentManager()
+
 
 class OpenRecentDocumentCommand(sublime_plugin.WindowCommand):
 	def run(self):
@@ -23,6 +26,77 @@ class InsertrandomdocumenthtmlCommand(sublime_plugin.TextCommand):
 		id = thread_ids.pop()
 		current.add(view=self.view, thread=id)
 		self.view.insert(edit, 0, quipprovider.get_document_content(id))
+
+class OpenChatCommand(sublime_plugin.WindowCommand):
+
+	quip = quip_provider.QuipProvider()
+	
+	def __init__(self, window):
+		super().__init__(window)
+
+	def run(self):
+		if hasattr(self, 'toggled') and self.toggled:
+			self.window.run_command('set_layout', {
+				"cols": [0, 1.0],
+				"rows": [0.0, 1.0],
+				"cells": [[0, 0, 1, 1]]
+			})
+			self.toggled = False
+			self.window.focus_view(self.chat)
+			if self.window.active_view() == self.chat:
+				self.window.run_command('close')
+			return
+
+		self.window.run_command('set_layout', {
+			"cols": [0, 0.70, 1.0],
+			"rows": [0.0, 1.0],
+			"cells": [[0, 0, 1, 1], [1, 0, 2, 1]]
+		})
+		self.__open_chat()
+
+	def __open_chat(self):
+		self.__load_recent_chats()
+		self.toggled = True
+		self.chat = sublime.active_window().new_file()	
+		current.set_chat(self.chat_id, self.chat)
+		self.chat.run_command("insert_chat_messages", {"messages": [m.to_json() for m in self.quip.get_messages(self.chat_id)]})
+		self.chat.set_name(self.chat_name)
+
+	def __load_recent_chats(self):
+		chats = self.quip.get_recent_chats()
+		self.chat_id, self.chat_name = chats.pop()
+
+
+class InsertChatMessagesCommand(sublime_plugin.TextCommand):
+
+	quip = quip_provider.QuipProvider()
+
+	def run(self, edit, messages):
+		result = ''.join([
+			"%s | %s [%s]%s: %s\n" % (message.get('author_id'), message.get('author_name'), 
+				message.get('timestamp'), " (edited)" if message.get('edited') else "", message.get('text'))
+			for message in messages
+			])
+		current.chat.set_scratch(False)
+		current.chat.set_read_only(False)
+		self.view.run_command("insert",{"characters": result})
+		current.chat.set_read_only(True)
+		current.chat.set_scratch(True)
+
+
+
+class SendChatMessageCommand(sublime_plugin.TextCommand):
+	
+	def run(self, edit):
+		current_window = sublime.active_window()
+		if current.chat:
+			current_window.show_input_panel('Enter chat message:', '', self.__send_message, None, None)
+
+	def __send_message(self, text):
+		quip = quip_provider.QuipProvider()
+		message = quip.send_message(current.chat_id, text).to_json()
+		current.chat.run_command("insert_chat_messages", {"messages": [message]})
+
 
 class Printquipfiletree(sublime_plugin.TextCommand):
 	def __print_tree(self, tree_node, prefix):
@@ -56,7 +130,6 @@ class UploadChangesOnSave(sublime_plugin.EventListener):
 			html = "<p>" + line + "</p>"
 
 		quip.edit_document(thread_id=current.get(view), content=html)
-
 
 
 # Section with test commands!
@@ -102,7 +175,6 @@ class InsertTestContactsCommand(sublime_plugin.TextCommand):
 		for friend in friend_list:
 			string_tree += "<li>%s</li>" % self.__print_user(friend)
 		string_tree += "</ul>"
-
 		phantom = sublime.Phantom(
 			region = self.view.visible_region(),
 			content = string_tree,
