@@ -130,6 +130,7 @@ class OpenChatCommand(sublime_plugin.WindowCommand):
 			self.window.focus_view(self.chat)
 			if self.window.active_view() == self.chat:
 				self.window.run_command('close')
+			current.reset_chat()
 			return
 
 		self.window.run_command('set_layout', {
@@ -144,7 +145,7 @@ class OpenChatCommand(sublime_plugin.WindowCommand):
 		self.toggled = True
 		self.chat = sublime.active_window().new_file()	
 		current.set_chat(self.chat_id, self.chat)
-		self.chat.run_command("insert_chat_messages", {"messages": [m.to_json() for m in self.quip.get_messages(self.chat_id)]})
+		self.chat.run_command("insert_chat_messages", {"messages": [str(m) for m in self.quip.get_messages(self.chat_id)]})
 		self.chat.set_name(self.chat_name)
 
 	def __load_recent_chats(self):
@@ -157,14 +158,11 @@ class InsertChatMessagesCommand(sublime_plugin.TextCommand):
 	quip = quip_provider.QuipProvider()
 
 	def run(self, edit, messages):
-		result = ''.join([
-			"%s | %s [%s]%s: %s\n" % (message.get('author_id'), message.get('author_name'), 
-				message.get('timestamp'), " (edited)" if message.get('edited') else "", message.get('text'))
-			for message in messages
-			])
+		result = ''.join(messages)
 		current.chat.set_scratch(False)
 		current.chat.set_read_only(False)
-		self.view.run_command("insert",{"characters": result})
+		self.view.insert(edit, self.view.size(), result)
+		#self.view.run_command("insert", {"characters": result})
 		current.chat.set_read_only(True)
 		current.chat.set_scratch(True)
 
@@ -176,10 +174,10 @@ class SendChatMessageCommand(sublime_plugin.TextCommand):
 		if current.chat:
 			current_window.show_input_panel('Enter chat message:', '', self.__send_message, None, None)
 
-	def __send_message(self, text):
+	def __send_message(self, text: str):
 		quip = quip_provider.QuipProvider()
-		message = quip.send_message(current.chat_id, text).to_json()
-		current.chat.run_command("insert_chat_messages", {"messages": [message]})
+		message = quip.send_message(current.chat_id, text)
+		current.chat.run_command("insert_chat_messages", {"messages": [str(message)]})
 
 
 class UploadChangesOnSave(sublime_plugin.EventListener):

@@ -18,11 +18,7 @@ class Message:
         self.edited = updated_usec - created_usec >= 10**6
         self.timestamp = datetime.fromtimestamp(max(updated_usec, created_usec)/(10**6))
 
-    def to_json(self):
-        return {
-            'text': self.text,
-            'author_id': self.author_id,
-            'author_name': self.author_name,
-            'edited': self.edited,
-            'timestamp': self.timestamp.strftime('%Y-%m-%d %H-%M-%S')
-        }
+    def __str__(self):
+        return "%s | %s [%s] %s: %s\n" % (self.author_id, self.author_name, 
+                self.timestamp, "(edited)" if self.edited else "", self.text)
+            
