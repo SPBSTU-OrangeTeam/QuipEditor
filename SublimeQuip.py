@@ -7,7 +7,7 @@ from .CurrentManager import CurrentManager
 from .TabsManager import TabsManager
 from .TabsManager import FILE_TREE_TAB_ID
 
-CACHE_DIRECTORY = sublime.cache_path() + '/QUIP'
+CACHE_DIRECTORY = sublime.cache_path() + "/SublimeQuip"
 if not os.path.exists(CACHE_DIRECTORY):
     os.makedirs(CACHE_DIRECTORY)
 
