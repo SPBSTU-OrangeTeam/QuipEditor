@@ -73,6 +73,7 @@ class InsertSelectedDocumentCommand(sublime_plugin.TextCommand):
 		current.comments[doc_id] = quipprovider.get_comments(doc_id)
 		self.view.replace(edit, self.view.visible_region(), quipprovider.get_document_content(doc_id))
 
+
 class PrintQuipFileTree(sublime_plugin.TextCommand):
 	def __print_tree(self, tree_node, prefix, postfix):
 		if tree_node is None:
