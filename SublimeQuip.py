@@ -38,6 +38,7 @@ class OpenRecentDocumentCommand(sublime_plugin.WindowCommand):
 			view.retarget(CACHE_DIRECTORY + "/" + thread_id + ".html")
 			view.run_command(COMMAND_GET_SELECTED_DOCUMENT, args)
 			view.run_command('save')
+			current.add(view=view, thread=thread_id)
 		else:
 			view = self.window.new_file()
 			view.run_command(COMMAND_GET_RANDOM_DOCUMENT)
@@ -68,7 +69,6 @@ class InsertSelectedDocumentCommand(sublime_plugin.TextCommand):
 		doc_id = args[KEY_THREAD_ID]
 		assert doc_id is not None
 		quipprovider = quip_provider.QuipProvider()
-		current.add(view=self.view, thread=doc_id)
 		self.view.replace(edit, self.view.visible_region(), quipprovider.get_document_content(doc_id))
 
 class PrintQuipFileTree(sublime_plugin.TextCommand):
