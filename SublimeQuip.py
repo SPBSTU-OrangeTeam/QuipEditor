@@ -24,7 +24,6 @@ current = CurrentManager()
 tabs_manager = TabsManager()
 
 
-
 class OpenRecentDocumentCommand(sublime_plugin.WindowCommand):
 	def run(self, **args):
 		if args is not None and KEY_THREAD_ID in args.keys():
@@ -69,6 +68,7 @@ class InsertSelectedDocumentCommand(sublime_plugin.TextCommand):
 		doc_id = args[KEY_THREAD_ID]
 		assert doc_id is not None
 		quipprovider = quip_provider.QuipProvider()
+		current.comments[doc_id] = quipprovider.get_comments(doc_id)
 		self.view.replace(edit, self.view.visible_region(), quipprovider.get_document_content(doc_id))
 
 class PrintQuipFileTree(sublime_plugin.TextCommand):
@@ -200,6 +200,19 @@ class UploadChangesOnSave(sublime_plugin.EventListener):
 	def on_pre_close(self, view):
 		tabs_manager.remove_tab_by_view(view)
 
+
+class ShowCommentsOnHover(sublime_plugin.EventListener):
+
+	def on_hover(self, view, point, hover_zone):
+		thread_id = current.get(view=view)
+		if not tabs_manager.contains_tab(thread_id) or view.is_popup_visible():
+			return
+		word_region = view.word(point)
+		word = view.substr(word_region)
+		shown_comments = [comment for comment in current.comments.get(thread_id)
+			if word in comment.get('annotation').get('highlight_section_ids')]
+		text = '\n'.join(["%s: %s" % (c.get('author_name'), c.get('text')) for c in shown_comments])
+		view.show_popup(text, flags=sublime.HIDE_ON_MOUSE_MOVE_AWAY, location=point)
 
 
 # Section with test commands!

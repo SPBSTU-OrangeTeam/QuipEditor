@@ -1,5 +1,5 @@
 import sublime
-import websocket
+#import websocket
 import time
 import json
 import _thread as thread
@@ -103,6 +103,12 @@ class QuipProvider:
             else:
                 user = User(contact["id"], contact["name"], None, profile_picture_url=contact["profile_picture_url"])
         return user, friend_list
+
+    def get_comments(self, thread_id):
+        messages = self.quip_client.get_messages(thread_id)
+        comments = [comment for comment in messages
+                    if comment.get('annotation') and comment.get('visible')]
+        return comments
 
     def get_messages(self, thread_id):
         messages = self.quip_client.get_messages(thread_id, count=100)
