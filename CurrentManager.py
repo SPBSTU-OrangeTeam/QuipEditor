@@ -4,6 +4,7 @@ class CurrentManager:
 
     def __init__(self):
         self._threads = dict()
+        self.reset_chat()
 
     def add(self, thread: int, view: View = None, view_id: int = 0) -> (int, bool):
         id = view.id() if view else view_id
@@ -19,3 +20,13 @@ class CurrentManager:
 
     def contains(self, view: View = None, view_id: int = 0) -> bool:
         return (view.id() if view else view_id) in self._threads.keys()
+
+    def set_chat(self, id: str, view: View):
+        self.chat = view
+        self.chat_id = id
+
+    def reset_chat(self):
+        self.chat = None
+        self.chat_id = None
+
+
