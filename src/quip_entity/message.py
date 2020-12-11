@@ -15,10 +15,10 @@ class Message:
         self.author_id = author_id
         self.author_name = author_name
         # if difference between created and updated usec more than 1 second
-        self.edited = updated_usec - created_usec >= 10**6
-        self.timestamp = datetime.fromtimestamp(max(updated_usec, created_usec)/(10**6))
+        self.edited = updated_usec - created_usec >= 1_000_000
+        self.timestamp = datetime.fromtimestamp(max(updated_usec, created_usec)/(1_000_000))
 
     def __str__(self):
-        return "%s | %s [%s] %s: %s\n" % (self.author_id, self.author_name, 
+        return "%s | %s [%s] %s: %s" % (self.author_id, self.author_name, 
                 self.timestamp, "(edited)" if self.edited else "", self.text)
             
