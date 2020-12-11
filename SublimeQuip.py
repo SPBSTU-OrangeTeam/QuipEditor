@@ -73,11 +73,10 @@ class InsertChatMessagesCommand(sublime_plugin.TextCommand):
 	quip = quip_provider.QuipProvider()
 
 	def run(self, edit, messages):
-		result = ''.join(messages)
+		result = '\n'.join(messages)
 		current.chat.set_scratch(False)
 		current.chat.set_read_only(False)
 		self.view.insert(edit, self.view.size(), result)
-		#self.view.run_command("insert", {"characters": result})
 		current.chat.set_read_only(True)
 		current.chat.set_scratch(True)
 
