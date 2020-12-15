@@ -1,8 +1,4 @@
 import sublime
-import websocket
-import time
-import json
-import _thread as thread
 
 from ..deps.quip import QuipClient
 from ..quip_entity.message import Message
@@ -14,9 +10,9 @@ class QuipProvider:
 
     def __init__(self):
         self.quip_client = QuipClient(
-            access_token=sublime.load_settings("SublimeQuip.sublime-settings").get("quip_token", "NOT_FOUND"),
+            access_token=sublime.load_settings("QuipEditor.sublime-settings").get("quip_token", "NOT_FOUND"),
             base_url="https://platform.quip.com")
-        self.heartbeat_interval = sublime.load_settings("SublimeQuip.sublime-settings")\
+        self.heartbeat_interval = sublime.load_settings("QuipEditor.sublime-settings")\
             .get("quip_heartbeat_interval", 20)
 
     def get_document_thread_ids(self):
@@ -122,20 +118,5 @@ class QuipProvider:
                        response["created_usec"], response["updated_usec"]) \
             if response["visible"] else None
 
-    def __on_open(self, ws):
-        print("### connection established ###")
-
-        def run(*args):
-            while True:
-                time.sleep(self.heartbeat_interval)
-                ws.send(json.dumps({"type": "heartbeat"}))
-
-        thread.start_new_thread(run, ())
-
     def subscribe_messages(self, on_message, on_close, on_error):
-        websocket_info = self.quip_client.new_websocket()
-
-        ws = websocket.WebSocketApp(
-            websocket_info["url"], on_message=on_message, on_error=on_error, on_close=on_close)
-        ws.on_open = self.__on_open(ws)
-        ws.run_forever()
+        pass

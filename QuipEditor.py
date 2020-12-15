@@ -3,15 +3,17 @@ import sublime_plugin
 import json
 import os
 from .src.providers import quip_provider
-from .CurrentManager import CurrentManager
-from .TabsManager import TabsManager
-from .TabsManager import FILE_TREE_TAB_ID
+from .src.managers.CurrentManager import CurrentManager
+from .src.managers.TabsManager import TabsManager
+from .src.managers.TabsManager import FILE_TREE_TAB_ID
+from .src.deps.markdownify import markdownify as md
 
-CACHE_DIRECTORY = sublime.cache_path() + "/Quip"
+
+CACHE_DIRECTORY = sublime.cache_path() + "\\QuipEditor"
 if not os.path.exists(CACHE_DIRECTORY):
     os.makedirs(CACHE_DIRECTORY)
 
-COMMAND_OPEN_DOCUMENT = "open_recent_document"
+COMMAND_OPEN_DOCUMENT = "open_document"
 COMMAND_PRINT_QUIP_FILE_TREE = "print_quip_file_tree"
 COMMAND_GET_SELECTED_DOCUMENT = "insert_selected_document"
 COMMAND_GET_RANDOM_DOCUMENT = "insert_random_document_html"
@@ -25,7 +27,7 @@ tabs_manager = TabsManager()
 
 
 
-class OpenRecentDocumentCommand(sublime_plugin.WindowCommand):
+class OpenDocumentCommand(sublime_plugin.WindowCommand):
 	def run(self, **args):
 		if args is not None and KEY_THREAD_ID in args.keys():
 			thread_id = args[KEY_THREAD_ID]
@@ -69,7 +71,7 @@ class InsertSelectedDocumentCommand(sublime_plugin.TextCommand):
 		doc_id = args[KEY_THREAD_ID]
 		assert doc_id is not None
 		quipprovider = quip_provider.QuipProvider()
-		self.view.replace(edit, self.view.visible_region(), quipprovider.get_document_content(doc_id))
+		self.view.replace(edit, self.view.visible_region(), md(quipprovider.get_document_content(doc_id)))
 
 class PrintQuipFileTree(sublime_plugin.TextCommand):
 	def __print_tree(self, tree_node, prefix, postfix):
@@ -211,22 +213,6 @@ class ShowTestContactsCommand(sublime_plugin.WindowCommand):
 		view = self.window.new_file()
 		view.run_command("insert_test_contacts")
 
-def on_message(ws, message):
-    print("message:")
-    print(json.dumps(json.loads(message), indent=4))
-
-def on_error(ws, error):
-    print("error:")
-    print(error)
-
-def on_close(ws):
-    print("### connection closed ###")
-
-class OpenTestWebsocketCommand(sublime_plugin.WindowCommand):
-	def run(self, **args):				
-		quipprovider = quip_provider.QuipProvider()
-		# Not working because ssl lib obsolete
-		quipprovider.subscribe_messages(on_message=on_message, on_error=on_error, on_close=on_close)
 
 class InsertTestContactsCommand(sublime_plugin.TextCommand):
 	def __print_user(self, user):
@@ -248,6 +234,7 @@ class InsertTestContactsCommand(sublime_plugin.TextCommand):
 			layout = sublime.LAYOUT_INLINE
 		)
 		sublime.PhantomSet(self.view, "chat_phantom_set").update([phantom, phantom])
+
 
 class InsertTestChatCommand(sublime_plugin.TextCommand):
 	def run(self, edit):

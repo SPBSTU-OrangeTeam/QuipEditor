@@ -1,11 +1,16 @@
 import sublime
 import urllib.request
-from os.path import join
+import os
+
+
+PROFILE_PICTURES_DIRECTORY = "QuipEditor\\resources\\users\\profile_pictures"
+if not os.path.exists(os.path.join(sublime.cache_path(), PROFILE_PICTURES_DIRECTORY)):
+    os.makedirs(os.path.join(sublime.cache_path(), PROFILE_PICTURES_DIRECTORY))
 
 
 def load_picture(picture_url, user_id):
-    picture_path = "SublimeQuip/resources/users/profile_pictures/%s.png" % user_id
-    urllib.request.urlretrieve(picture_url, join(sublime.packages_path(), picture_path))
+    picture_path = "%s\\%s.png" % (PROFILE_PICTURES_DIRECTORY, user_id)
+    urllib.request.urlretrieve(picture_url, os.path.join(sublime.cache_path(), picture_path))
     return picture_path
 
 
