@@ -1,7 +1,4 @@
 [
-  { "caption": "Quip: Open Recent Document", "command": "open_recent_document" },
   { "caption": "Quip: Show File Tree", "command": "show_file_tree"},
-  { "caption": "QuipTest: Show Chat", "command": "show_test_chat"},
-  { "caption": "QuipTest: Show Contacts", "command": "show_test_contacts"},
-  { "caption": "QuipTest: Open Websocket", "command": "open_test_websocket"}
+  { "caption": "QuipTest: Show Contacts", "command": "show_test_contacts"}
 ]
