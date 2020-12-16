@@ -1,6 +1,5 @@
 [
 
 	{ "keys": ["alt+a"], "command": "send_chat_message"},
-	{ "keys": ["alt+d"], "command": "open_chat"},
-	{ "keys": ["alt+d"], "command": "open_markdown_preview"}
+	{ "keys": ["alt+d"], "command": "open_chat"}
 ]
