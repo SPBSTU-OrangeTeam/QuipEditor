@@ -181,15 +181,15 @@ class ShowTestContactsCommand(sublime_plugin.WindowCommand):
 class InsertTestContactsCommand(sublime_plugin.TextCommand):
 
 	def run(self, edit):
-		user, friend_list = quip.get_contacts()
-		string_tree = self._print_user(user)
-		string_tree += "<ul>"
-		for friend in friend_list:
-			string_tree += "<li>%s</li>" % self._print_user(friend)
-		string_tree += "</ul>"
+		user, friends = quip.get_contacts()
+		tree = self._print_user(user)
+		tree += "<ul>"
+		for friend in friends:
+			tree += "<li>%s</li>" % self._print_user(friend)
+		tree += "</ul>"
 		phantom = sublime.Phantom(
 			region=Region(0, self.view.size()),
-			content=string_tree,
+			content=tree,
 			layout=sublime.LAYOUT_INLINE
 		)
 		sublime.PhantomSet(self.view, "chat_phantom_set").update([phantom, phantom])
