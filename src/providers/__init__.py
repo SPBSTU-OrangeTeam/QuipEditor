@@ -31,7 +31,8 @@ class QuipProvider:
         return self._quip.edit_document(thread_id, content, operation, content_type, section_id)
 
     def current_user(self):
-        return self._quip.get_authenticated_user()
+        user = self._quip.get_authenticated_user()
+        return User(user["id"], user["name"])
 
     def get_recent_chats(self):
         threads = self._quip.get_recent_threads()
@@ -89,13 +90,12 @@ class QuipProvider:
 
     def get_contacts(self):
         contacts = self._quip.get_contacts()
-        user, friend_list = None, list()
-        for contact in contacts:
-            if contact["affinity"] > 0.0:
-                friend_list.append(User(contact["id"], contact["name"], contact["chat_thread_id"]))
-            else:
-                user = User(contact["id"], contact["name"])
-        return user, friend_list
+        user = self.current_user()
+        friends = [
+            User(contact["id"], contact["name"], contact["chat_thread_id"]) for contact in contacts
+            if contact['affinity'] > 0.0
+        ]
+        return user, friends
 
     def get_messages(self, thread_id):
         messages = self._quip.get_messages(thread_id, count=100)

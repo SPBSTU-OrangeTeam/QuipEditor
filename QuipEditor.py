@@ -8,9 +8,6 @@ from .src.managers import TabsManager
 from .src.managers.ChatView import ChatView
 from .src.deps.markdownify import markdownify as md
 
-CACHE_DIRECTORY = sublime.cache_path() + "/QuipEditor"
-if not os.path.exists(CACHE_DIRECTORY):
-	os.makedirs(CACHE_DIRECTORY)
 
 COMMAND_OPEN_DOCUMENT = "open_document"
 COMMAND_OPEN_CHAT = "open_chat"
@@ -25,8 +22,13 @@ KEY_CONTACTS_PHANTOM_SET = "contacts_phantom_set"
 KEY_MESSAGES_PHANTOM_SET = "messages_phantom_set"
 
 
-manager = TabsManager()
-quip = QuipProvider()
+def plugin_loaded():
+	global quip, manager, CACHE_DIRECTORY
+	quip = QuipProvider()
+	manager = TabsManager()
+	CACHE_DIRECTORY = sublime.cache_path() + "/QuipEditor"
+	if not os.path.exists(CACHE_DIRECTORY):
+		os.makedirs(CACHE_DIRECTORY)
 
 
 class OpenDocumentCommand(sublime_plugin.WindowCommand):
@@ -107,16 +109,16 @@ class InsertContactsCommand(sublime_plugin.TextCommand):
 		self.view.set_read_only(True)
 		self.view.set_name("Contacts")
 
-		user, friend_list = quip.get_contacts()
-		string_tree = self._print_user(user)
-		string_tree += "<ul>"
-		for friend in friend_list:
-			string_tree += "<li>%s</li>" % self._print_user(friend)
-		string_tree += "</ul>"
+		user, friends = quip.get_contacts()
+		tree = self._print_user(user)
+		tree += "<ul>"
+		for friend in friends:
+			tree += "<li>%s</li>" % self._print_user(friend)
+		tree += "</ul>"
 
 		phantom = sublime.Phantom(
 			region=Region(0, self.view.size()),
-			content=string_tree,
+			content=tree,
 			layout=sublime.LAYOUT_INLINE,
 			on_navigate=self._open_chat
 		)
