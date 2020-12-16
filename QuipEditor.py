@@ -6,9 +6,6 @@ from .src.providers import QuipProvider
 from .src.managers import TabsManager, TREE_VIEW_TAB_ID
 from .src.deps.markdownify import markdownify as md
 
-CACHE_DIRECTORY = sublime.cache_path() + "/QuipEditor"
-if not os.path.exists(CACHE_DIRECTORY):
-	os.makedirs(CACHE_DIRECTORY)
 
 COMMAND_OPEN_DOCUMENT = "open_document"
 COMMAND_PRINT_QUIP_FILE_TREE = "print_quip_file_tree"
@@ -19,8 +16,13 @@ KEY_THREAD_ID = "thread_id"
 KEY_FILE_TREE_PHANTOM_SET = "file_tree_phantom_set"
 
 
-manager = TabsManager()
-quip = QuipProvider()
+def plugin_loaded():
+	global quip, manager, CACHE_DIRECTORY
+	quip = QuipProvider()
+	manager = TabsManager()
+	CACHE_DIRECTORY = sublime.cache_path() + "/QuipEditor"
+	if not os.path.exists(CACHE_DIRECTORY):
+		os.makedirs(CACHE_DIRECTORY)
 
 
 class OpenDocumentCommand(sublime_plugin.WindowCommand):
@@ -99,7 +101,6 @@ class OpenChatCommand(sublime_plugin.WindowCommand):
 		self._open_chat()
 
 	def _open_chat(self):
-		print('test')
 		self.window.run_command('set_layout', {
 			"cols": [0, 0.70, 1.0],
 			"rows": [0.0, 1.0],
