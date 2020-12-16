@@ -1,5 +1,3 @@
 [
-
-	{ "keys": ["alt+a"], "command": "send_chat_message"},
-	{ "keys": ["alt+d"], "command": "open_chat"}
+	{ "keys": ["alt+a"], "command": "send_chat_message"}
 ]
