@@ -1,5 +1,5 @@
 from datetime import datetime
-import random
+from random import Random
 
 class Message:
     
@@ -28,7 +28,7 @@ class TreeNode:
 class User:
 
     def __init__(self, user_id, name, chat_thread_id = None):
-        self.avatar = random.choice(['😎', '🥺', '😃', '🐻', '🙊'])
+        self.avatar = Random(user_id).choice([' 😎 ', ' 🥺 ', ' 😃 ', ' 🐻 ', ' 🙊 '])
         self.id = user_id
         self.name = name
         self.chat_thread_id = chat_thread_id
