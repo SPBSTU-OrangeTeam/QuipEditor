@@ -99,8 +99,16 @@ class QuipProvider:
 
     def get_comments(self, thread_id):
         messages = self._quip.get_messages(thread_id)
-        comments = [comment for comment in messages
-                    if comment.get('annotation') and comment.get('visible')]
+        comments = [
+            Message(
+                comment.get("text"), comment.get("author_id"), comment.get("author_name"),
+                comment.get("created_usec"), comment.get("updated_usec"),
+                comment.get('annotation').get('highlight_section_ids')
+            )
+            for comment in messages
+            if comment.get('annotation')
+        ]
+        comments.reverse()
         return comments
 
     def get_messages(self, thread_id):

@@ -180,11 +180,11 @@ class ShowCommentsOnHover(sublime_plugin.EventListener):
 			return
 		word_region = view.word(point)
 		word = view.substr(word_region)
-		shown_comments = [comment for comment in manager.comments.get(thread_id)
-			if word in comment.get('annotation', {}).get('highlight_section_ids')]
-		shown_comments.reverse()
-		text = '\n'.join(["%s: %s" % (c.get('author_name'), c.get('text')) for c in shown_comments])
-		view.show_popup(text, flags=sublime.HIDE_ON_MOUSE_MOVE_AWAY, location=point)
+		comments = [str(comment) for comment in manager.comments.get(thread_id) if word in comment.sections]
+		view.sel().clear()
+		view.sel().add(Region(point))
+		view.show_popup_menu(comments, None)
+		#view.show_popup('\n'.join(comments), flags=sublime.HIDE_ON_MOUSE_MOVE_AWAY, location=point)
 
 
 # Section with test commands!
