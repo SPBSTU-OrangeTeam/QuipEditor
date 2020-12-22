@@ -59,6 +59,11 @@ class InsertSelectedDocumentCommand(sublime_plugin.TextCommand):
 		html = quip.get_document_content(thread_id)
 		self.view.replace(edit, Region(0, self.view.size()), md(html) if markdown else html)
 		manager.comments[thread_id] = quip.get_comments(thread_id)
+		self.view.window().run_command(
+			COMMAND_OPEN_CHAT,
+			{"thread": thread_id,
+			 'name': 'Comments'}
+		)
 
 
 class PrintQuipFileTree(sublime_plugin.TextCommand):
@@ -137,11 +142,11 @@ class OpenChatCommand(sublime_plugin.WindowCommand):
 	def __init__(self, window):
 		super().__init__(window)
 
-	def run(self, thread=None):
+	def run(self, thread=None, name='Private Chat'):
 		self._close_chat()
-		self._open_chat(thread)
+		self._open_chat(thread, name)
 
-	def _open_chat(self, thread):
+	def _open_chat(self, thread, name):
 		if not thread:
 			return
 		self.window.run_command('set_layout', {
@@ -154,7 +159,7 @@ class OpenChatCommand(sublime_plugin.WindowCommand):
 			"rows": [0.0, 1.0],
 			"cells": [[0, 0, 1, 1], [1, 0, 2, 1]]
 		})
-		chat = ChatView(thread, sublime.active_window().new_file())
+		chat = ChatView(thread, sublime.active_window().new_file(), name)
 		manager.set_chat(chat)
 		manager.chat.view.run_command(
 			COMMAND_INSERT_CHAT_MESSAGES,
