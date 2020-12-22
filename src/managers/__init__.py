@@ -6,7 +6,6 @@ class TabsManager:
     def __init__(self):
         self._tabs = dict()
         self.chat = None
-        self.chat_id = None
         self.comments = dict()
 
     def add(self, thread: int, view):
@@ -24,15 +23,13 @@ class TabsManager:
     def contains(self, view):
         return view in self._tabs.values()
 
-    def set_chat(self, thread_id, view):
-        self.chat = view
-        self.chat_id = thread_id
+    def set_chat(self, chat):
+        self.chat = chat
 
     def reset_chat(self):
-        if self.chat_id:
-            self.remove_tab(thread=self.chat_id)
+        if self.chat.id:
+            self.remove_tab(thread=self.chat.id)
         self.chat = None
-        self.chat_id = None
 
     def remove_tab(self, thread=None, view=None):
         """ You must provide one parameter, though both is fine too """

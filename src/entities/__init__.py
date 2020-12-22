@@ -33,3 +33,10 @@ class User:
         self.id = user_id
         self.name = name
         self.chat_thread_id = chat_thread_id
+
+    def __str__(self):
+        return "<div>{0}  <span><a href=\'{1}\' title=\'Test hint\'>{2}</a></span></div>".format(
+            self.avatar,
+            self.chat_thread_id,
+            self.name
+        )
