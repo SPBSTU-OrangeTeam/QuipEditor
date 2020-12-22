@@ -57,7 +57,7 @@ class InsertSelectedDocumentCommand(sublime_plugin.TextCommand):
 
 	def run(self, edit, thread_id, markdown):
 		html = quip.get_document_content(thread_id)
-		self.view.replace(edit, Region(0, self.view.size()), md(html) if markdown else html)
+		self.view.replace(edit, Region(0, self.view.size()), html) #md(html) if markdown else html)
 		manager.comments[thread_id] = quip.get_comments(thread_id)
 		self.view.window().run_command(
 			COMMAND_OPEN_CHAT,
@@ -225,8 +225,13 @@ class UploadChangesOnSave(sublime_plugin.EventListener):
 
 		quip.edit_document(thread_id=manager.get_thread(view), content=html)
 
-	def on_pre_close(self, view):
+	def on_close(self, view):
 		if manager.chat and manager.chat.view == view:
+			sublime.active_window().run_command('set_layout', {
+				"cols": [0, 1.0],
+				"rows": [0.0, 1.0],
+				"cells": [[0, 0, 1, 1]]
+			})
 			manager.reset_chat()
 		manager.remove_tab(view=view)
 
