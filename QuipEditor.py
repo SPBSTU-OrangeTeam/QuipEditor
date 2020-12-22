@@ -3,7 +3,8 @@ import sublime_plugin
 import os
 from sublime import Region
 from .src.providers import QuipProvider
-from .src.managers import TREE_VIEW_TAB_ID, TabsManager, ChatView
+from .src.managers import TREE_VIEW_TAB_ID, TabsManager
+from .src.managers.ChatView import ChatView
 from .src.deps.markdownify import markdownify as md
 
 
