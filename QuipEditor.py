@@ -31,13 +31,13 @@ def plugin_loaded():
 
 
 class OpenDocumentCommand(sublime_plugin.WindowCommand):
-	def run(self, thread_id):
+	def run(self, thread_id, markdown=True):
 		view = manager.get_tab(thread_id)
 		if not view:
 			view = self.window.new_file()
 		self.window.focus_view(view)
 		view.retarget(CACHE_DIRECTORY + "/" + thread_id + ".html")
-		view.run_command(COMMAND_INSERT_SELECTED_DOCUMENT, {"thread_id": thread_id})
+		view.run_command(COMMAND_INSERT_SELECTED_DOCUMENT, {"thread_id": thread_id, 'markdown': markdown})
 		view.run_command('save')
 		manager.add(thread_id, view)
 
@@ -53,8 +53,11 @@ class ShowFileTreeCommand(sublime_plugin.WindowCommand):
 
 
 class InsertSelectedDocumentCommand(sublime_plugin.TextCommand):
-	def run(self, edit, thread_id):
-		self.view.replace(edit, Region(0, self.view.size()), md(quip.get_document_content(thread_id)))
+
+	def run(self, edit, thread_id, markdown=True):
+		html = quip.get_document_content(thread_id)
+		self.view.replace(edit, Region(0, self.view.size()), md(html) if markdown else html)
+		manager.comments[thread_id] = quip.get_comments(thread_id)
 
 
 class PrintQuipFileTree(sublime_plugin.TextCommand):
@@ -142,12 +145,12 @@ class OpenChatCommand(sublime_plugin.WindowCommand):
 	def __init__(self, window):
 		super().__init__(window)
 
-	def run(self, chat_thread_id):
+	def run(self, thread):
 		if hasattr(self, 'toggled') and self.toggled:
 			return self._close_chat()
-		self._open_chat(chat_thread_id)
+		self._open_chat(thread)
 
-	def _open_chat(self, chat_thread_id):
+	def _open_chat(self, thread):
 		self.window.run_command('set_layout', {
 			"cols": [0, 0.70, 1.0],
 			"rows": [0.0, 1.0],
@@ -155,15 +158,12 @@ class OpenChatCommand(sublime_plugin.WindowCommand):
 		})
 		self.toggled = True
 
-		self.chat = ChatView()
-		self.chat.view = sublime.active_window().new_file()
-		self.chat.id = chat_thread_id
+		self.chat = ChatView(thread, sublime.active_window().new_file())
 		manager.set_chat(self.chat)
-
 		self.chat.view.set_name(self.chat.name)
 		self.chat.view.run_command(
 			COMMAND_INSERT_CHAT_MESSAGES,
-			{"messages": [str(m) for m in quip.get_messages(chat_thread_id)]}
+			{"messages": [str(m) for m in quip.get_messages(thread)]}
 		)
 
 	def _close_chat(self):
@@ -195,7 +195,6 @@ class InsertChatMessagesCommand(sublime_plugin.TextCommand):
 			content=result,
 			layout=sublime.LAYOUT_BLOCK
 		)
-		manager.chat.add_phantom(phantom)
 		manager.chat.add_phantom(phantom)
 		sublime.PhantomSet(self.view, KEY_MESSAGES_PHANTOM_SET).update(manager.chat.phantoms)
 
@@ -235,4 +234,17 @@ class UploadChangesOnSave(sublime_plugin.EventListener):
 		manager.remove_tab(view=view)
 
 
-# Section with test commands!
+class ShowCommentsOnHover(sublime_plugin.EventListener):
+
+	def on_hover(self, view, point, hover_zone):
+		thread = manager.get_thread(view)
+		messages = manager.comments.get(thread)
+		if not messages or view.is_popup_visible():
+			return
+		word_region = view.word(point)
+		word = view.substr(word_region)
+		comments = [str(comment) for comment in messages if word in comment.sections]
+		view.sel().clear()
+		view.sel().add(Region(point))
+		view.show_popup_menu(comments, None)
+		#view.show_popup('\n'.join(comments), flags=sublime.HIDE_ON_MOUSE_MOVE_AWAY, location=point)

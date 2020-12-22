@@ -6,6 +6,7 @@ class TabsManager:
     def __init__(self):
         self._tabs = dict()
         self.chat = None
+        self.comments = dict()
 
     def add(self, thread: int, view):
         self._tabs[thread] = view
