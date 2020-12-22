@@ -26,13 +26,13 @@ def plugin_loaded():
 
 
 class OpenDocumentCommand(sublime_plugin.WindowCommand):
-	def run(self, thread_id):
+	def run(self, thread_id, markdown=True):
 		view = manager.get_tab(thread_id)
 		if not view:
 			view = self.window.new_file()
 		self.window.focus_view(view)
 		view.retarget(CACHE_DIRECTORY + "/" + thread_id + ".html")
-		view.run_command(COMMAND_GET_SELECTED_DOCUMENT, {"thread_id": thread_id})
+		view.run_command(COMMAND_GET_SELECTED_DOCUMENT, {"thread_id": thread_id, 'markdown': markdown})
 		view.run_command('save')
 		manager.add(thread_id, view)
 
@@ -49,8 +49,9 @@ class ShowFileTreeCommand(sublime_plugin.WindowCommand):
 
 class InsertSelectedDocumentCommand(sublime_plugin.TextCommand):
 
-	def run(self, edit, thread_id):
-		self.view.replace(edit, Region(0, self.view.size()), md(quip.get_document_content(thread_id)))
+	def run(self, edit, thread_id, markdown=True):
+		html = quip.get_document_content(thread_id)
+		self.view.replace(edit, Region(0, self.view.size()), md(html) if markdown else html)
 		manager.comments[thread_id] = quip.get_comments(thread_id)
 
 
