@@ -24,6 +24,7 @@ def plugin_loaded():
 	if not os.path.exists(CACHE_DIRECTORY):
 		os.makedirs(CACHE_DIRECTORY)
 
+
 class OpenDocumentCommand(sublime_plugin.WindowCommand):
 	def run(self, thread_id):
 		view = manager.get_tab(thread_id)
@@ -175,12 +176,13 @@ class UploadChangesOnSave(sublime_plugin.EventListener):
 class ShowCommentsOnHover(sublime_plugin.EventListener):
 
 	def on_hover(self, view, point, hover_zone):
-		thread_id = manager.get_thread(view)
-		if not thread_id or view.is_popup_visible():
+		thread = manager.get_thread(view)
+		messages = manager.comments.get(thread)
+		if not messages or view.is_popup_visible():
 			return
 		word_region = view.word(point)
 		word = view.substr(word_region)
-		comments = [str(comment) for comment in manager.comments.get(thread_id) if word in comment.sections]
+		comments = [str(comment) for comment in messages if word in comment.sections]
 		view.sel().clear()
 		view.sel().add(Region(point))
 		view.show_popup_menu(comments, None)
