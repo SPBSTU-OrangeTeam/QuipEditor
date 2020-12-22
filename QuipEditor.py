@@ -3,9 +3,7 @@ import sublime_plugin
 import os
 from sublime import Region
 from .src.providers import QuipProvider
-from .src.managers import TREE_VIEW_TAB_ID
-from .src.managers import TabsManager
-from .src.managers.ChatView import ChatView
+from .src.managers import TREE_VIEW_TAB_ID, TabsManager, ChatView
 from .src.deps.markdownify import markdownify as md
 
 
@@ -110,10 +108,16 @@ class InsertContactsCommand(sublime_plugin.TextCommand):
 		self.view.set_name("Contacts")
 
 		user, friends = quip.get_contacts()
-		tree = self._print_user(user)
+		if user is None:
+			tree = "Пофикси меня"
+		else:
+			tree = user.__str__()
 		tree += "<ul>"
 		for friend in friends:
-			tree += "<li>%s</li>" % self._print_user(friend)
+			if user is None:
+				tree += "Пофикси меня"
+			else:
+				tree += "<li>%s</li>" % friend.__str__()
 		tree += "</ul>"
 
 		phantom = sublime.Phantom(
@@ -123,15 +127,6 @@ class InsertContactsCommand(sublime_plugin.TextCommand):
 			on_navigate=self._open_chat
 		)
 		sublime.PhantomSet(self.view, KEY_CONTACTS_PHANTOM_SET).update([phantom, phantom])
-
-	def _print_user(self, user):
-		if user is None:
-			return "Пофикси меня"
-		return "<div>{0}  <span><a href=\'{1}\' title=\'Test hint\'>{2}</a></span></div>".format(
-			user.avatar,
-			user.chat_thread_id,
-			user.name
-		)
 
 	def _open_chat(self, chat_thread_id):
 		self.view.window().run_command(
@@ -159,13 +154,13 @@ class OpenChatCommand(sublime_plugin.WindowCommand):
 		})
 		self.toggled = True
 
-		self.chat_view = ChatView()
-		self.chat_view.view = sublime.active_window().new_file()
-		self.chat_view.chat_id = chat_thread_id
-		manager.set_chat(self.chat_view)
+		self.chat = ChatView()
+		self.chat.view = sublime.active_window().new_file()
+		self.chat.id = chat_thread_id
+		manager.set_chat(self.chat)
 
-		self.chat_view.view.set_name(self.chat_view.chat_name)
-		self.chat_view.view.run_command(
+		self.chat.view.set_name(self.chat.name)
+		self.chat.view.run_command(
 			COMMAND_INSERT_CHAT_MESSAGES,
 			{"messages": [str(m) for m in quip.get_messages(chat_thread_id)]}
 		)
@@ -177,8 +172,8 @@ class OpenChatCommand(sublime_plugin.WindowCommand):
 			"cells": [[0, 0, 1, 1]]
 		})
 		self.toggled = False
-		self.window.focus_view(self.chat_view.view)
-		if self.window.active_view() == self.chat_view.view:
+		self.window.focus_view(self.chat.view)
+		if self.window.active_view() == self.chat.view:
 			self.window.run_command('close')
 		manager.reset_chat()
 
@@ -191,20 +186,20 @@ class InsertChatMessagesCommand(sublime_plugin.TextCommand):
 		result = ""
 		for m in messages:
 			result += self._convert_to_html(m)
-		manager.chat_view.view.set_scratch(False)
-		manager.chat_view.view.set_read_only(False)
+		manager.chat.view.set_scratch(False)
+		manager.chat.view.set_read_only(False)
 
 		phantom = sublime.Phantom(
 			region=Region(0, self.view.size()),
 			content=result,
 			layout=sublime.LAYOUT_BLOCK
 		)
-		manager.chat_view.add_phantom(phantom)
-		manager.chat_view.add_phantom(phantom)
-		sublime.PhantomSet(self.view, KEY_MESSAGES_PHANTOM_SET).update(manager.chat_view.phantoms)
+		manager.chat.add_phantom(phantom)
+		manager.chat.add_phantom(phantom)
+		sublime.PhantomSet(self.view, KEY_MESSAGES_PHANTOM_SET).update(manager.chat.phantoms)
 
-		manager.chat_view.view.set_read_only(True)
-		manager.chat_view.view.set_scratch(True)
+		manager.chat.view.set_read_only(True)
+		manager.chat.view.set_scratch(True)
 
 	def _convert_to_html(self, message):
 		return "<div>%s</div>" % message
@@ -214,12 +209,12 @@ class SendChatMessageCommand(sublime_plugin.TextCommand):
 
 	def run(self, edit):
 		current_window = sublime.active_window()
-		if manager.chat_view.view:
+		if manager.chat.view:
 			current_window.show_input_panel('Enter chat message:', '', self._send_message, None, None)
 
 	def _send_message(self, text: str):
-		message = quip.send_message(manager.chat_view.chat_id, text)
-		manager.chat_view.view.run_command(COMMAND_INSERT_CHAT_MESSAGES, {"messages": [str(message)]})
+		message = quip.send_message(manager.chat.id, text)
+		manager.chat.view.run_command(COMMAND_INSERT_CHAT_MESSAGES, {"messages": [str(message)]})
 
 
 class UploadChangesOnSave(sublime_plugin.EventListener):
