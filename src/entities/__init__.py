@@ -13,7 +13,7 @@ class Message:
 
 
     def __str__(self):
-        return "%s | %s: %s%s" % (self.timestamp.strftime('%H:%M %d.%m.%y'), self.author_name,
+        return "[%s] %s: %s%s" % (self.timestamp.strftime('%d.%m %H:%M'), self.author_name,
                                    self.text, " (edited)" if self.edited else "")
 
 
@@ -28,15 +28,15 @@ class TreeNode:
 
 class User:
 
-    def __init__(self, user_id, name, chat_thread_id = None):
+    def __init__(self, user_id, name, thread=None):
         self.avatar = Random(user_id).choice([' 😎 ', ' 🥺 ', ' 😃 ', ' 🐻 ', ' 🙊 '])
         self.id = user_id
         self.name = name
-        self.chat_thread_id = chat_thread_id
+        self.thread = thread
 
     def __str__(self):
         return "<div>{0}  <span><a href=\'{1}\' title=\'Test hint\'>{2}</a></span></div>".format(
             self.avatar,
-            self.chat_thread_id,
+            self.thread,
             self.name
         )

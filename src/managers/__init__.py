@@ -1,11 +1,26 @@
 TREE_VIEW_TAB_ID = "TREE_VIEW_TAB_ID"
 
 
+class ChatView:
+
+    def __init__(self, id=None, view=None, name="Private Chat"):
+        self.id = id
+        self.view = view
+        self.name = name
+        self.phantoms = []
+
+        if self.view and self.name:
+            self.view.set_name(name)
+
+    def add_phantom(self, phantom):
+        self.phantoms.extend([phantom, phantom])
+
+
 class TabsManager:
 
     def __init__(self):
         self._tabs = dict()
-        self.chat = None
+        self.chat = ChatView()
         self.comments = dict()
 
     def add(self, thread: int, view):
@@ -27,7 +42,7 @@ class TabsManager:
         self.chat = chat
 
     def reset_chat(self):
-        if self.chat.id:
+        if self.chat and self.chat.id:
             self.remove_tab(thread=self.chat.id)
         self.chat = None
 
