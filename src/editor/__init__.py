@@ -31,10 +31,10 @@ class HTMLEditor:
         edited_sections = [section for line,section in edited]
         for i, copy in enumerate(old_copy):
             if copy not in new_copy:
-                section = self._parse_id(old[i])
+                section = self._parse_id(old[i-len(deleted)])
                 if section and section not in edited_sections:
                     deleted.append(section)
-                old.remove(old[i])
+                old.remove(old[i-len(deleted)])
 
         return new_lines, edited, deleted
 
