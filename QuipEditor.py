@@ -1,7 +1,11 @@
+import re
+
 import sublime
 import sublime_plugin
 import os
 from sublime import Region
+
+from .src.editor import HTMLEditor
 from .src.providers import QuipProvider
 from .src.managers import TREE_VIEW_TAB_ID, TabsManager, ChatView
 from .src.deps.markdownify import markdownify as md
@@ -31,13 +35,13 @@ def plugin_loaded():
 
 class OpenDocumentCommand(sublime_plugin.WindowCommand):
 
-	def run(self, thread_id, markdown=True):
+	def run(self, thread_id, markdown=False, chat=True):
 		view = manager.get_tab(thread_id)
 		if not view:
 			view = self.window.new_file()
 		self.window.focus_view(view)
 		view.retarget(CACHE_DIRECTORY + "/" + thread_id + ".html")
-		view.run_command(COMMAND_INSERT_SELECTED_DOCUMENT, {"thread_id": thread_id, 'markdown': markdown})
+		view.run_command(COMMAND_INSERT_SELECTED_DOCUMENT, {"thread_id": thread_id, 'markdown': markdown, "chat": chat})
 		view.run_command('save')
 		manager.add(thread_id, view)
 
@@ -55,15 +59,16 @@ class ShowFileTreeCommand(sublime_plugin.WindowCommand):
 
 class InsertSelectedDocumentCommand(sublime_plugin.TextCommand):
 
-	def run(self, edit, thread_id, markdown):
+	def run(self, edit, thread_id, markdown=False, chat=True):
 		html = quip.get_document_content(thread_id)
-		self.view.replace(edit, Region(0, self.view.size()), html) #md(html) if markdown else html)
-		manager.comments[thread_id] = quip.get_comments(thread_id)
-		self.view.window().run_command(
-			COMMAND_OPEN_CHAT,
-			{"thread": thread_id,
-			 'name': 'Comments'}
-		)
+		self.view.replace(edit, Region(0, self.view.size()), md(html) if markdown else html)
+		if chat:
+			manager.comments[thread_id] = quip.get_comments(thread_id)
+			self.view.window().run_command(
+				COMMAND_OPEN_CHAT,
+				{"thread": thread_id,
+				 'name': 'Comments'}
+			)
 
 
 class PrintQuipFileTree(sublime_plugin.TextCommand):
@@ -84,7 +89,7 @@ class PrintQuipFileTree(sublime_plugin.TextCommand):
 			.update([phantom, phantom])  # TODO разобраться почему только так работает
 
 	def _open_doc(self, doc_id):
-		self.view.window().run_command(COMMAND_OPEN_DOCUMENT, {"thread_id": doc_id})
+		self.view.window().run_command(COMMAND_OPEN_DOCUMENT, {"thread_id": doc_id, "markdown": False})
 
 	def _print_tree(self, node, prefix, postfix):
 		if node is None:
@@ -217,13 +222,29 @@ class UploadChangesOnSave(sublime_plugin.EventListener):
 	def on_pre_save(self, view):
 		if not manager.contains(view):
 			return
-		line = view.substr(view.full_line(view.sel()[0]))
-		if line.startswith('<') and line.endswith('>\n'):
-			html = line
-		else:
-			html = "<p>" + line + "</p>"
 
-		quip.edit_document(thread_id=manager.get_thread(view), content=html)
+		editor = HTMLEditor(view)
+		thread = manager.get_thread(view)
+
+		for line, section in editor.edited:
+			quip.edit_document(
+				thread_id=thread, content=line,
+				operation=4, section_id=section
+			)
+		for line, section in editor.new:
+			quip.edit_document(
+				thread_id=thread, content=line,
+				operation=2 if section else 0,
+				section_id=section
+			)
+		for section in editor.deleted:
+			quip.edit_document(
+				thread_id=thread, content=None,
+				operation=5, section_id=section
+			)
+
+		view.run_command(COMMAND_INSERT_SELECTED_DOCUMENT, {"thread_id": thread, "chat": False})
+		manager.add(thread, view)
 
 	def on_close(self, view):
 		if manager.chat and manager.chat.view == view:
@@ -245,8 +266,5 @@ class ShowCommentsOnHover(sublime_plugin.EventListener):
 			return
 		word_region = view.word(point)
 		word = view.substr(word_region)
-		comments = [str(comment) for comment in messages if word in comment.sections]
-		view.sel().clear()
-		view.sel().add(Region(point))
-		view.show_popup_menu(comments, None)
-		#view.show_popup('\n'.join(comments), flags=sublime.HIDE_ON_MOUSE_MOVE_AWAY, location=point)
+		comments = ['<div>' + str(comment) + '</div>' for comment in messages if word in comment.sections]
+		view.show_popup('\n'.join(comments), flags=sublime.HIDE_ON_MOUSE_MOVE_AWAY, location=point, max_width=600, max_height=1500)
