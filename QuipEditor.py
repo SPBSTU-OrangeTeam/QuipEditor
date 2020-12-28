@@ -1,4 +1,5 @@
 import re
+import time
 
 import sublime
 import sublime_plugin
@@ -237,9 +238,9 @@ class UploadChangesOnSave(sublime_plugin.EventListener):
 				operation=2 if section else 0,
 				section_id=section
 			)
-		for section in editor.deleted:
+		for line, section in editor.deleted:
 			quip.edit_document(
-				thread_id=thread, content=None,
+				thread_id=thread, content=line,
 				operation=5, section_id=section
 			)
 

@@ -33,7 +33,7 @@ class HTMLEditor:
             if copy not in new_copy:
                 section = self._parse_id(old[i-len(deleted)])
                 if section and section not in edited_sections:
-                    deleted.append(section)
+                    deleted.append((None, section))
                 old.remove(old[i-len(deleted)])
 
         return new_lines, edited, deleted
