@@ -3,10 +3,11 @@ TREE_VIEW_TAB_ID = "TREE_VIEW_TAB_ID"
 
 class ChatView:
 
-    def __init__(self, id=None, view=None, name="Private Chat"):
+    def __init__(self, id=None, view=None, name="Private Chat", is_document=False):
         self.id = id
         self.view = view
         self.name = name
+        self.is_document = is_document
         self.phantoms = []
 
         if self.view and self.name:
