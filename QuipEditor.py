@@ -68,7 +68,8 @@ class InsertSelectedDocumentCommand(sublime_plugin.TextCommand):
 			self.view.window().run_command(
 				COMMAND_OPEN_CHAT,
 				{"thread": thread_id,
-				 'name': 'Comments'}
+				 'name': 'Comments',
+				 'is_document': True}
 			)
 
 
@@ -145,39 +146,39 @@ class InsertContactsCommand(sublime_plugin.TextCommand):
 
 class OpenChatCommand(sublime_plugin.WindowCommand):
 
-	def __init__(self, window):
-		super().__init__(window)
+	def run(self, thread=None, name='Private Chat', is_document=False):
+		self.window.run_command('close_chat')
+		self._open_chat(thread, name, is_document)
 
-	def run(self, thread=None, name='Private Chat'):
-		self._close_chat()
-		self._open_chat(thread, name)
-
-	def _open_chat(self, thread, name):
+	def _open_chat(self, thread, name, is_document):
 		if not thread:
 			return
-		self.window.run_command('set_layout', {
-			"cols": [0, 1.0],
-			"rows": [0.0, 1.0],
-			"cells": [[0, 0, 1, 1]]
-		})
 		self.window.run_command('set_layout', {
 			"cols": [0, 0.60, 1.0],
 			"rows": [0.0, 1.0],
 			"cells": [[0, 0, 1, 1], [1, 0, 2, 1]]
 		})
-		chat = ChatView(thread, sublime.active_window().new_file(), name)
-		manager.set_chat(chat)
+		manager.set_chat(
+			ChatView(thread, sublime.active_window().new_file(), name, is_document)
+		)
 		manager.chat.view.run_command(
 			COMMAND_INSERT_CHAT_MESSAGES,
 			{"messages": [str(m) for m in quip.get_messages(thread)]}
 		)
 
-	def _close_chat(self):
+
+class CloseChatCommand(sublime_plugin.WindowCommand):
+
+	def run(self):
+		self.window.run_command('set_layout', {
+			"cols": [0, 1.0],
+			"rows": [0.0, 1.0],
+			"cells": [[0, 0, 1, 1]]
+		})
 		if not manager.chat or not manager.chat.view:
 			return
-		self.window.focus_view(manager.chat.view)
-		if self.window.active_view() == manager.chat.view:
-			self.window.run_command('close')
+		manager.chat.view.close()
+		manager.reset_chat()
 
 
 class InsertChatMessagesCommand(sublime_plugin.TextCommand):
@@ -248,15 +249,10 @@ class UploadChangesOnSave(sublime_plugin.EventListener):
 		manager.add(thread, view)
 
 	def on_close(self, view):
-		if manager.chat and manager.chat.view == view:
-			sublime.active_window().run_command('set_layout', {
-				"cols": [0, 1.0],
-				"rows": [0.0, 1.0],
-				"cells": [[0, 0, 1, 1]]
-			})
-			manager.reset_chat()
+		if manager.chat:
+			if manager.chat.view == view or (manager.get_thread(view) and manager.chat.is_document):
+				sublime.active_window().run_command('close_chat')
 		manager.remove_tab(view=view)
-
 
 class ShowCommentsOnHover(sublime_plugin.EventListener):
 
