@@ -1,0 +1,8 @@
+{
+	"downloader_precedence": {
+		"windows": ["wininet"],
+		"osx": ["wget", "curl", "urllib"],
+		"linux": ["urllib", "curl", "wget"]
+	},
+	"quip_token": "YOUR TOKEN HERE"
+}

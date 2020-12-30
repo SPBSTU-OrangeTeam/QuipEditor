@@ -1,0 +1,4 @@
+[
+  { "caption": "Quip: Show File Tree", "command": "show_file_tree"},
+  { "caption": "Quip: Show Contacts", "command": "show_contacts"}
+]
