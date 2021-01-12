@@ -29,7 +29,7 @@ class HTMLEditor:
                         section = self._parse_id(new_copy[index])
                         if section:
                             break
-                new_lines.append((self._to_html(new[i]), section))
+                new_lines.append((new[i], section))
 
         edited_sections = [section for line,section in edited]
         for i, copy in enumerate(old_copy):
