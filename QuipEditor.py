@@ -237,7 +237,7 @@ class UploadChangesOnSave(sublime_plugin.EventListener):
 			quip.edit_document(
 				thread_id=thread, content=line,
 				operation=2 if section else 0,
-				section_id=section
+				section_id=section, content_type='markdown'
 			)
 		for line, section in editor.deleted:
 			quip.edit_document(

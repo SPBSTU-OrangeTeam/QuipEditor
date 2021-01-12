@@ -25,8 +25,11 @@ class HTMLEditor:
                     edited.append((self._to_html(line), section))
                     continue
                 if i <= len(old_copy):
-                    section = self._parse_id(old_copy[i-1])
-                new_lines.append((self._to_html(new[i]), section))
+                    for index in range(i-1, 0, -1):
+                        section = self._parse_id(new_copy[index])
+                        if section:
+                            break
+                new_lines.append((new[i], section))
 
         edited_sections = [section for line,section in edited]
         for i, copy in enumerate(old_copy):
@@ -36,7 +39,7 @@ class HTMLEditor:
                     deleted.append((None, section))
                 old.remove(old[i-len(deleted)])
 
-        return new_lines, edited, deleted
+        return new_lines[::-1], edited, deleted
 
     def _readlines(self, view):
         try:
