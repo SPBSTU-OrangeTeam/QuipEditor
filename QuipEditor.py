@@ -43,6 +43,7 @@ class OpenDocumentCommand(sublime_plugin.WindowCommand):
 		self.window.focus_view(view)
 		view.retarget(CACHE_DIRECTORY + "/" + thread_id + ".html")
 		view.run_command(COMMAND_INSERT_SELECTED_DOCUMENT, {"thread_id": thread_id, 'markdown': markdown, "chat": chat})
+		manager.system_save = True
 		view.run_command('save')
 		manager.add(thread_id, view)
 
@@ -63,6 +64,7 @@ class InsertSelectedDocumentCommand(sublime_plugin.TextCommand):
 	def run(self, edit, thread_id, markdown=False, chat=True):
 		html = quip.get_document_content(thread_id)
 		self.view.replace(edit, Region(0, self.view.size()), md(html) if markdown else html)
+		manager.reset_debounced(thread_id)
 		if chat:
 			manager.comments[thread_id] = quip.get_comments(thread_id)
 			self.view.window().run_command(
@@ -71,7 +73,6 @@ class InsertSelectedDocumentCommand(sublime_plugin.TextCommand):
 				 'name': 'Comments',
 				 'is_document': True}
 			)
-
 
 class PrintQuipFileTree(sublime_plugin.TextCommand):
 
@@ -222,9 +223,9 @@ class SendChatMessageCommand(sublime_plugin.TextCommand):
 class UploadChangesOnSave(sublime_plugin.EventListener):
 
 	def on_pre_save(self, view):
-		if not manager.contains(view):
+		if not manager.contains(view) or manager.system_save:
+			manager.system_save = False
 			return
-
 		editor = HTMLEditor(view)
 		thread = manager.get_thread(view)
 
@@ -253,6 +254,17 @@ class UploadChangesOnSave(sublime_plugin.EventListener):
 			if manager.chat.view == view or (manager.get_thread(view) and manager.chat.is_document):
 				sublime.active_window().run_command('close_chat')
 		manager.remove_tab(view=view)
+
+	def on_activated(self, view):
+		thread = manager.get_thread(view)
+		if thread is None or thread == TREE_VIEW_TAB_ID:
+			return
+		if manager.update_debounced(thread):
+			view.run_command(COMMAND_INSERT_SELECTED_DOCUMENT, {"thread_id": thread, "chat": False})
+			manager.system_save = True
+			view.run_command('save')
+
+
 
 class ShowCommentsOnHover(sublime_plugin.EventListener):
 

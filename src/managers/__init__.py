@@ -1,3 +1,5 @@
+from datetime import datetime
+
 TREE_VIEW_TAB_ID = "TREE_VIEW_TAB_ID"
 
 
@@ -23,9 +25,14 @@ class TabsManager:
         self._tabs = dict()
         self.chat = ChatView()
         self.comments = dict()
+        self._upload_timestamps = dict()
+        self.system_save = False
+
+
 
     def add(self, thread: int, view):
         self._tabs[thread] = view
+        self._upload_timestamps[thread] = datetime.now().microsecond
 
     def get_thread(self, view):
         for thread, item in self._tabs.items():
@@ -55,6 +62,17 @@ class TabsManager:
             self._remove_by_thread(thread)
         if view:
             self._remove_by_view(view)
+
+    def update_debounced(self, thread: int):
+        if self._upload_timestamps[thread] is None:
+            return True
+        if datetime.now().microsecond - self._upload_timestamps[thread] > 15*1000:
+            return True
+        return False
+
+    def reset_debounced(self, thread: int):
+        self._upload_timestamps[thread] = datetime.now().microsecond
+
 
     def _remove_by_thread(self, thread):
         self._tabs.pop(thread, None)
