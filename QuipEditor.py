@@ -8,21 +8,23 @@ from sublime import Region
 
 from .src.editor import HTMLEditor
 from .src.providers import QuipProvider
-from .src.managers import TREE_VIEW_TAB_ID, TabsManager, ChatView
+from .src.managers import TREE_VIEW_TAB_ID, TabsManager, ChatView, Preview
 from .src.deps.markdownify import markdownify as md
 
 
 COMMAND_OPEN_DOCUMENT = "open_document"
 COMMAND_OPEN_CHAT = "open_chat"
+COMMAND_OPEN_PREVIEW = "open_preview"
 COMMAND_PRINT_QUIP_FILE_TREE = "print_quip_file_tree"
 COMMAND_INSERT_SELECTED_DOCUMENT = "insert_selected_document"
-COMMAND_INSERT_CHAT_MESSAGES = 'insert_chat_messages'
-COMMAND_INSERT_CONTACTS = 'insert_contacts'
-
+COMMAND_INSERT_CHAT_MESSAGES = "insert_chat_messages"
+COMMAND_INSERT_CONTACTS = "insert_contacts"
+COMMAND_INSERT_PREVIEW = "insert_preview"
 KEY_THREAD_ID = "thread_id"
 KEY_FILE_TREE_PHANTOM_SET = "file_tree_phantom_set"
 KEY_CONTACTS_PHANTOM_SET = "contacts_phantom_set"
 KEY_MESSAGES_PHANTOM_SET = "messages_phantom_set"
+KEY_PREVIEW_PHANTOM_SET = "preview_phantom_set"
 
 
 def plugin_loaded():
@@ -40,11 +42,10 @@ class OpenDocumentCommand(sublime_plugin.WindowCommand):
 		view = manager.get_tab(thread_id)
 		if not view:
 			view = self.window.new_file()
-		self.window.focus_view(view)
+		manager.event_propagation = False
 		view.retarget(CACHE_DIRECTORY + "/" + thread_id + ".html")
-		view.run_command(COMMAND_INSERT_SELECTED_DOCUMENT, {"thread_id": thread_id, 'markdown': markdown, "chat": chat})
-		manager.system_save = True
-		view.run_command('save')
+		view.run_command(COMMAND_INSERT_SELECTED_DOCUMENT, {"thread_id": thread_id, "markdown": markdown, "chat": chat})
+		view.run_command("save")
 		manager.add(thread_id, view)
 
 
@@ -70,8 +71,12 @@ class InsertSelectedDocumentCommand(sublime_plugin.TextCommand):
 			self.view.window().run_command(
 				COMMAND_OPEN_CHAT,
 				{"thread": thread_id,
-				 'name': 'Comments',
-				 'is_document': True}
+				 "name": "Comments",
+				 "is_document": True}
+			)
+			self.view.window().run_command(
+				COMMAND_OPEN_PREVIEW,
+				{"content": html}
 			)
 
 class PrintQuipFileTree(sublime_plugin.TextCommand):
@@ -98,9 +103,9 @@ class PrintQuipFileTree(sublime_plugin.TextCommand):
 		if node is None:
 			return ""
 		thread_name = node.name
-		if node.thread_type == 'document':
-			thread_name = '<a href=\'{0}\'>{1}</a>'.format(node.thread_id, node.name)
-		str_result = '{0} Name: {1} | Type: {2}{3}'.format(
+		if node.thread_type == "document":
+			thread_name = "<a href=\"{0}\">{1}</a>".format(node.thread_id, node.name)
+		str_result = "{0} Name: {1} | Type: {2}{3}".format(
 			prefix,
 			thread_name,
 			node.thread_type,
@@ -109,7 +114,7 @@ class PrintQuipFileTree(sublime_plugin.TextCommand):
 		if node.children is None:
 			return str_result
 		for child in node.children:
-			str_result += '<ul>' + self._print_tree(child, "<li>", "</li>") + '</ul>'
+			str_result += "<ul>" + self._print_tree(child, "<li>", "</li>") + "</ul>"
 		return str_result
 
 
@@ -130,7 +135,7 @@ class InsertContactsCommand(sublime_plugin.TextCommand):
 		user, friends = quip.get_contacts()
 		tree = str(user) if friends else "Нет контактов"
 		tree += "<ul>"
-		tree += '\n'.join(["<li>%s</li>" % str(friend) for friend in friends if friend])
+		tree += "\n".join(["<li>%s</li>" % str(friend) for friend in friends if friend])
 		tree += "</ul>"
 
 		phantom = sublime.Phantom(
@@ -147,15 +152,15 @@ class InsertContactsCommand(sublime_plugin.TextCommand):
 
 class OpenChatCommand(sublime_plugin.WindowCommand):
 
-	def run(self, thread=None, name='Private Chat', is_document=False):
-		self.window.run_command('close_chat')
+	def run(self, thread=None, name="Private Chat", is_document=False):
+		self.window.run_command("close_chat")
 		self._open_chat(thread, name, is_document)
 
 	def _open_chat(self, thread, name, is_document):
 		if not thread:
 			return
-		self.window.run_command('set_layout', {
-			"cols": [0, 0.60, 1.0],
+		self.window.run_command("set_layout", {
+			"cols": [0, 0.6, 1.0],
 			"rows": [0.0, 1.0],
 			"cells": [[0, 0, 1, 1], [1, 0, 2, 1]]
 		})
@@ -167,11 +172,44 @@ class OpenChatCommand(sublime_plugin.WindowCommand):
 			{"messages": [str(m) for m in quip.get_messages(thread)]}
 		)
 
+class OpenPreviewCommand(sublime_plugin.WindowCommand):
+
+	def run(self, content, name="Document Preview"):
+		self._open_preview(content, name)
+
+	def _open_preview(self, content, name):
+		manager.set_preview(
+			Preview(content, sublime.active_window().new_file(), name)
+		)
+		manager.preview.view.run_command(
+			COMMAND_INSERT_PREVIEW,
+			{"content": content}
+		)
+
+
+class InsertPreviewCommand(sublime_plugin.TextCommand):
+
+	def run(self, edit, content):
+		self.view.erase_phantoms(KEY_PREVIEW_PHANTOM_SET)
+
+		manager.preview.view.set_scratch(False)
+		manager.preview.view.set_read_only(False)
+
+		phantom = sublime.Phantom(
+			region=Region(0, self.view.size()),
+			content=content,
+			layout=sublime.LAYOUT_INLINE
+		)
+		manager.preview.add_phantom(phantom)
+		sublime.PhantomSet(self.view, KEY_PREVIEW_PHANTOM_SET).update(manager.preview.phantoms)
+
+		manager.preview.view.set_read_only(True)
+		manager.preview.view.set_scratch(True)
 
 class CloseChatCommand(sublime_plugin.WindowCommand):
 
 	def run(self):
-		self.window.run_command('set_layout', {
+		self.window.run_command("set_layout", {
 			"cols": [0, 1.0],
 			"rows": [0.0, 1.0],
 			"cells": [[0, 0, 1, 1]]
@@ -187,7 +225,7 @@ class InsertChatMessagesCommand(sublime_plugin.TextCommand):
 	def run(self, edit, messages):
 		self.view.erase_phantoms(KEY_MESSAGES_PHANTOM_SET)
 
-		result = ''.join([self._convert_to_html(m) for m in messages])
+		result = "".join([self._convert_to_html(m) for m in messages])
 		manager.chat.view.set_scratch(False)
 		manager.chat.view.set_read_only(False)
 
@@ -211,7 +249,7 @@ class SendChatMessageCommand(sublime_plugin.TextCommand):
 	def run(self, edit):
 		current_window = sublime.active_window()
 		if manager.chat and manager.chat.view:
-			current_window.show_input_panel('Enter chat message:', '', self._send_message, None, None)
+			current_window.show_input_panel("Enter chat message:", "", self._send_message, None, None)
 
 	def _send_message(self, text: str):
 		if not manager.chat or not manager.chat.id:
@@ -223,8 +261,7 @@ class SendChatMessageCommand(sublime_plugin.TextCommand):
 class UploadChangesOnSave(sublime_plugin.EventListener):
 
 	def on_pre_save(self, view):
-		if not manager.contains(view) or manager.system_save:
-			manager.system_save = False
+		if not manager.contains(view) or not manager.event_propagation:
 			return
 		editor = HTMLEditor(view)
 		thread = manager.get_thread(view)
@@ -238,7 +275,7 @@ class UploadChangesOnSave(sublime_plugin.EventListener):
 			quip.edit_document(
 				thread_id=thread, content=line,
 				operation=2 if section else 0,
-				section_id=section, content_type='markdown'
+				section_id=section, content_type="markdown"
 			)
 		for line, section in editor.deleted:
 			quip.edit_document(
@@ -249,22 +286,59 @@ class UploadChangesOnSave(sublime_plugin.EventListener):
 		view.run_command(COMMAND_INSERT_SELECTED_DOCUMENT, {"thread_id": thread, "chat": False})
 		manager.add(thread, view)
 
+	def on_post_save(self, view):
+		sublime.active_window().focus_view(view)
+		view.sel().clear()
+		manager.event_propagation = True
+
 	def on_close(self, view):
 		if manager.chat:
 			if manager.chat.view == view or (manager.get_thread(view) and manager.chat.is_document):
-				sublime.active_window().run_command('close_chat')
+				sublime.active_window().run_command("close_chat")
 		manager.remove_tab(view=view)
 
 	def on_activated(self, view):
 		thread = manager.get_thread(view)
 		if thread is None or thread == TREE_VIEW_TAB_ID:
 			return
+		view.window().run_command("set_layout", {
+			"cols": [0, 0.6, 1.0],
+			"rows": [0.0, 1.0],
+			"cells": [[0, 0, 1, 1], [1, 0, 2, 1]]
+		})
 		if manager.update_debounced(thread):
 			view.run_command(COMMAND_INSERT_SELECTED_DOCUMENT, {"thread_id": thread, "chat": False})
-			manager.system_save = True
-			view.run_command('save')
+			manager.event_propagation = False
+			view.run_command("save")
 
+	# def on_activated_async(self, view):
+	# 	thread = manager.get_thread(view)
+	# 	if thread is None or thread == TREE_VIEW_TAB_ID or not manager.event_propagation:
+	# 		return
+	# 	manager.comments[thread] = quip.get_comments(thread)
+	# 	view.window().run_command(
+	# 		COMMAND_OPEN_CHAT,
+	# 		{"thread": thread,
+	# 		 "name": "Comments",
+	# 		 "is_document": True}
+	# 	)
+	# 	view.window().run_command(
+	# 		COMMAND_OPEN_PREVIEW,
+	# 		{"content": view.substr(sublime.Region(0, view.size()))}
+	# 	)
 
+	# def on_deactivated_async(self, view):		
+	# 	thread = manager.get_thread(view)
+	# 	if thread is None or thread == TREE_VIEW_TAB_ID or not manager.event_propagation:
+	# 		return
+	# 	# print("tyt")
+	# 	# manager.chat.view.close()
+	# 	# manager.preview.view.close()
+	# 	view.window().run_command("set_layout", {
+	# 		"cols": [0, 1.0],
+	# 		"rows": [0.0, 1.0],
+	# 		"cells": [[0, 0, 1, 1]]
+	# 	})
 
 class ShowCommentsOnHover(sublime_plugin.EventListener):
 
@@ -275,5 +349,5 @@ class ShowCommentsOnHover(sublime_plugin.EventListener):
 			return
 		word_region = view.word(point)
 		word = view.substr(word_region)
-		comments = ['<div>' + str(comment) + '</div>' for comment in messages if word in comment.sections]
-		view.show_popup('\n'.join(comments), flags=sublime.HIDE_ON_MOUSE_MOVE_AWAY, location=point, max_width=600, max_height=1500)
+		comments = ["<div>" + str(comment) + "</div>" for comment in messages if word in comment.sections]
+		view.show_popup("\n".join(comments), flags=sublime.HIDE_ON_MOUSE_MOVE_AWAY, location=point, max_width=600, max_height=1500)

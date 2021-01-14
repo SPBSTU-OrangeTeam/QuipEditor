@@ -19,14 +19,29 @@ class ChatView:
         self.phantoms.extend([phantom, phantom])
 
 
+class Preview:
+
+    def __init__(self, content = None, view=None, name="HTML Preview"):
+        self.content = content
+        self.view = view
+        self.name = name
+        self.phantoms = []
+
+        if self.view and self.name:
+            self.view.set_name(name)
+
+    def add_phantom(self, phantom):
+        self.phantoms.extend([phantom, phantom])
+
 class TabsManager:
 
     def __init__(self):
         self._tabs = dict()
         self.chat = ChatView()
+        self.preview = Preview()
         self.comments = dict()
         self._upload_timestamps = dict()
-        self.system_save = False
+        self.event_propagation = False
 
 
 
@@ -49,13 +64,20 @@ class TabsManager:
     def set_chat(self, chat):
         self.chat = chat
 
+    def set_preview(self, preview):
+        self.preview = preview
+
     def reset_chat(self):
         if self.chat and self.chat.id:
             self.remove_tab(thread=self.chat.id)
         self.chat = None
 
+    def reset_preview(self):
+        self.preview = None
+
     def remove_tab(self, thread=None, view=None):
         """ You must provide one parameter, though both is fine too """
+        print("remove_tab")
         if not (thread or view):
             return
         if thread:
