@@ -40,7 +40,12 @@ def plugin_loaded():
 
 class OpenDocumentCommand(sublime_plugin.WindowCommand):
 
-	def run(self, thread_id, markdown=False, chat=True):
+	def run(self, thread_id, markdown=False, chat=True):	
+		self.window.run_command("set_layout", {
+			"cols": [0, 1.0],
+			"rows": [0.0, 1.0],
+			"cells": [[0, 0, 1, 1]]
+		})
 		view = manager.get_tab(thread_id)
 		if not view:
 			view = self.window.new_file()
@@ -78,6 +83,11 @@ class InsertSelectedDocumentCommand(sublime_plugin.TextCommand):
 			)
 			self.view.window().run_command(
 				COMMAND_OPEN_PREVIEW,
+				{"content": html}
+			)
+		else:
+			manager.preview.view.run_command(
+				COMMAND_INSERT_PREVIEW,
 				{"content": html}
 			)
 
@@ -201,7 +211,8 @@ class OpenChatCommand(sublime_plugin.WindowCommand):
 
 class OpenPreviewCommand(sublime_plugin.WindowCommand):
 
-	def run(self, content, name="Document Preview"):
+	def run(self, content, name="Document Preview"): 
+		self.window.run_command("close_preview")
 		self._open_preview(content, name)
 
 	def _open_preview(self, content, name):
@@ -224,11 +235,11 @@ class InsertPreviewCommand(sublime_plugin.TextCommand):
 
 		phantom = sublime.Phantom(
 			region=Region(0, self.view.size()),
-			content=content,
+			content=content.replace("<br/>", ""),
 			layout=sublime.LAYOUT_INLINE
 		)
-		manager.preview.add_phantom(phantom)
-		sublime.PhantomSet(self.view, KEY_PREVIEW_PHANTOM_SET).update(manager.preview.phantoms)
+		manager.preview.phantom = [phantom, phantom]
+		sublime.PhantomSet(self.view, KEY_PREVIEW_PHANTOM_SET).update(manager.preview.phantom)
 
 		manager.preview.view.set_read_only(True)
 		manager.preview.view.set_scratch(True)
@@ -236,15 +247,32 @@ class InsertPreviewCommand(sublime_plugin.TextCommand):
 class CloseChatCommand(sublime_plugin.WindowCommand):
 
 	def run(self):
+		if not manager.chat or not manager.chat.view:
+			return
+		manager.chat.view.close()
+		manager.reset_chat() 
+		if manager.preview and manager.preview.view:
+			return			
 		self.window.run_command("set_layout", {
 			"cols": [0, 1.0],
 			"rows": [0.0, 1.0],
 			"cells": [[0, 0, 1, 1]]
 		})
-		if not manager.chat or not manager.chat.view:
+
+class ClosePreviewCommand(sublime_plugin.WindowCommand):
+
+	def run(self):
+		if not manager.preview or not manager.preview.view:		
 			return
-		manager.chat.view.close()
-		manager.reset_chat()
+
+		manager.preview.view.close()
+		manager.reset_preview()
+		if not manager.chat or not manager.chat.view:			
+			self.window.run_command("set_layout", {
+				"cols": [0, 1.0],
+				"rows": [0.0, 1.0],
+				"cells": [[0, 0, 1, 1]]
+			})
 
 
 class InsertChatMessagesCommand(sublime_plugin.TextCommand):
@@ -320,8 +348,13 @@ class UploadChangesOnSave(sublime_plugin.EventListener):
 
 	def on_close(self, view):
 		if manager.chat:
-			if manager.chat.view == view or (manager.get_thread(view) and manager.chat.is_document):
+			if manager.chat.view == view:
 				sublime.active_window().run_command("close_chat")
+
+			if (manager.get_thread(view) and manager.chat.is_document):
+				sublime.active_window().run_command("close_chat")
+				sublime.active_window().run_command("close_preview")
+
 		manager.remove_tab(view=view)
 
 	def on_activated(self, view):
@@ -353,7 +386,6 @@ class UploadChangesOnSave(sublime_plugin.EventListener):
 	# 	thread = manager.get_thread(view)
 	# 	if thread is None or thread == TREE_VIEW_TAB_ID or not manager.event_propagation:
 	# 		return
-	# 	# print("tyt")
 	# 	# manager.chat.view.close()
 	# 	# manager.preview.view.close()
 	# 	view.window().run_command("set_layout", {
