@@ -25,13 +25,11 @@ class Preview:
         self.content = content
         self.view = view
         self.name = name
-        self.phantoms = []
+        self.phantom = []
 
         if self.view and self.name:
             self.view.set_name(name)
-
-    def add_phantom(self, phantom):
-        self.phantoms.extend([phantom, phantom])
+            
 
 class TabsManager:
 
@@ -68,7 +66,7 @@ class TabsManager:
         self.preview = preview
 
     def reset_chat(self):
-        if self.chat and self.chat.id:
+        if self.chat and self.chat.id and not self.chat.is_document:
             self.remove_tab(thread=self.chat.id)
         self.chat = None
 
