@@ -77,7 +77,6 @@ class TabsManager:
 
     def remove_tab(self, thread=None, view=None):
         """ You must provide one parameter, though both is fine too """
-        print("remove_tab")
         if not (thread or view):
             return
         if thread:
