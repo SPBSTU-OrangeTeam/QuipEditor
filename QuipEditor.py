@@ -8,7 +8,7 @@ from sublime import Region
 
 from .src.editor import HTMLEditor
 from .src.providers import QuipProvider
-from .src.managers import TREE_VIEW_TAB_ID, TabsManager, ChatView, Preview
+from .src.managers import TREE_VIEW_TAB_ID, TabsManager, ChatView, Preview, DocumentTab
 from .src.deps.markdownify import markdownify as md
 
 
@@ -41,14 +41,15 @@ def plugin_loaded():
 class OpenDocumentCommand(sublime_plugin.WindowCommand):
 
 	def run(self, thread_id, markdown=False, chat=True):
-		view = manager.get_tab(thread_id)
-		if not view:
-			view = self.window.new_file()
+		tab = manager.get_tab(thread_id)
+		if not tab:
+			tab = DocumentTab(self.window.new_file())
+
 		manager.event_propagation = False
-		view.retarget(CACHE_DIRECTORY + "/" + thread_id + ".html")
-		view.run_command(COMMAND_INSERT_SELECTED_DOCUMENT, {"thread_id": thread_id, "markdown": markdown, "chat": chat})
-		view.run_command("save")
-		manager.add(thread_id, view)
+		tab.view.retarget(CACHE_DIRECTORY + "/" + thread_id + ".html")
+		tab.view.run_command(COMMAND_INSERT_SELECTED_DOCUMENT, {"thread_id": thread_id, "markdown": markdown, "chat": chat})
+		tab.view.run_command("save")
+		manager.add(thread_id, tab.view)
 
 
 class ShowFileTreeCommand(sublime_plugin.WindowCommand):
