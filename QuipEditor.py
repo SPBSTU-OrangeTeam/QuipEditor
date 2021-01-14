@@ -15,11 +15,13 @@ from .src.deps.markdownify import markdownify as md
 COMMAND_OPEN_DOCUMENT = "open_document"
 COMMAND_OPEN_CHAT = "open_chat"
 COMMAND_OPEN_PREVIEW = "open_preview"
+COMMAND_SHOW_FILE_TREE = "show_file_tree"
 COMMAND_PRINT_QUIP_FILE_TREE = "print_quip_file_tree"
 COMMAND_INSERT_SELECTED_DOCUMENT = "insert_selected_document"
 COMMAND_INSERT_CHAT_MESSAGES = "insert_chat_messages"
 COMMAND_INSERT_CONTACTS = "insert_contacts"
 COMMAND_INSERT_PREVIEW = "insert_preview"
+COMMAND_DELETE_DOCUMENT = "delete_document"
 KEY_THREAD_ID = "thread_id"
 KEY_FILE_TREE_PHANTOM_SET = "file_tree_phantom_set"
 KEY_CONTACTS_PHANTOM_SET = "contacts_phantom_set"
@@ -52,7 +54,7 @@ class OpenDocumentCommand(sublime_plugin.WindowCommand):
 class ShowFileTreeCommand(sublime_plugin.WindowCommand):
 
 	def run(self):
-		view = manager.get_thread(TREE_VIEW_TAB_ID)
+		view = manager.get_tab(TREE_VIEW_TAB_ID)
 		if not view:
 			view = self.window.new_file()
 			manager.add(TREE_VIEW_TAB_ID, view)
@@ -91,31 +93,56 @@ class PrintQuipFileTree(sublime_plugin.TextCommand):
 			region=Region(0, self.view.size()),
 			content=string_tree,
 			layout=sublime.LAYOUT_INLINE,
-			on_navigate=self._open_doc
+			on_navigate=self._on_click_doc_link
 		)
 		sublime.PhantomSet(self.view, KEY_FILE_TREE_PHANTOM_SET) \
 			.update([phantom, phantom])  # TODO разобраться почему только так работает
 
-	def _open_doc(self, doc_id):
-		self.view.window().run_command(COMMAND_OPEN_DOCUMENT, {"thread_id": doc_id, "markdown": False})
+	def _on_click_doc_link(self, command):
+		args = command.split(":")
+		if len(args) == 2:
+			if args[0] == "open":
+				self.view.window().run_command(COMMAND_OPEN_DOCUMENT, {"thread_id": args[1], "markdown": False})
+			if args[0] == "delete":
+				self.view.window().run_command(COMMAND_DELETE_DOCUMENT, {"thread_id": args[1]})
+
 
 	def _print_tree(self, node, prefix, postfix):
 		if node is None:
 			return ""
 		thread_name = node.name
 		if node.thread_type == "document":
-			thread_name = "<a href=\"{0}\">{1}</a>".format(node.thread_id, node.name)
-		str_result = "{0} Name: {1} | Type: {2}{3}".format(
-			prefix,
-			thread_name,
-			node.thread_type,
-			postfix
-		)
+			thread_name = "<a href=\"open:{0}\">{1}</a>".format(node.thread_id, node.name)
+			str_result = "{0} Name: {1} | Type: {2}{3} (<a href=\"delete:{4}\">Delete</a>)".format(
+				prefix,
+				thread_name,
+				node.thread_type,
+				postfix,
+				node.thread_id
+			)
+		else:
+			str_result = "{0} Name: {1} | Type: {2}{3}".format(
+				prefix,
+				thread_name,
+				node.thread_type,
+				postfix,
+				node.thread_id
+			)
 		if node.children is None:
 			return str_result
 		for child in node.children:
 			str_result += "<ul>" + self._print_tree(child, "<li>", "</li>") + "</ul>"
 		return str_result
+
+
+class DeleteDocumentCommand(sublime_plugin.TextCommand):
+
+	def run(self, edit, thread_id, markdown=False, chat=False):
+		isOk = sublime.ok_cancel_dialog("Удалить документ?", "Удалить")
+		if isOk:
+			response = quip.delete_document(thread_id)
+			if len(response) == 0:
+				self.view.window().run_command(COMMAND_SHOW_FILE_TREE)
 
 
 class ShowContactsCommand(sublime_plugin.WindowCommand):
