@@ -22,6 +22,7 @@ COMMAND_INSERT_CHAT_MESSAGES = "insert_chat_messages"
 COMMAND_INSERT_CONTACTS = "insert_contacts"
 COMMAND_INSERT_PREVIEW = "insert_preview"
 COMMAND_DELETE_DOCUMENT = "delete_document"
+COMMAND_CREATE_DOCUMENT = "create_document"
 KEY_THREAD_ID = "thread_id"
 KEY_FILE_TREE_PHANTOM_SET = "file_tree_phantom_set"
 KEY_CONTACTS_PHANTOM_SET = "contacts_phantom_set"
@@ -115,6 +116,8 @@ class PrintQuipFileTree(sublime_plugin.TextCommand):
 				self.view.window().run_command(COMMAND_OPEN_DOCUMENT, {"thread_id": args[1], "markdown": False})
 			if args[0] == "delete":
 				self.view.window().run_command(COMMAND_DELETE_DOCUMENT, {"thread_id": args[1]})
+			if args[0] == "create":
+				self.view.window().run_command(COMMAND_CREATE_DOCUMENT, {"thread_id": args[1]})
 
 
 	def _print_tree(self, node, prefix, postfix):
@@ -130,19 +133,39 @@ class PrintQuipFileTree(sublime_plugin.TextCommand):
 				postfix,
 				node.thread_id
 			)
-		else:
-			str_result = "{0} Name: {1} | Type: {2}{3}".format(
+		elif node.thread_type != "root":
+			str_result = "{0} Name: {1} | Type: {2}{3} (<a href=\"create:{4}\">New document</a>)".format(
 				prefix,
 				thread_name,
 				node.thread_type,
 				postfix,
 				node.thread_id
 			)
+		else:
+			str_result = "{0} Name: {1} | Type: {2}{3}".format(
+				prefix,
+				thread_name,
+				node.thread_type,
+				postfix
+			)
 		if node.children is None:
 			return str_result
 		for child in node.children:
 			str_result += "<ul>" + self._print_tree(child, "<li>", "</li>") + "</ul>"
 		return str_result
+
+
+class CreateDocumentCommand(sublime_plugin.WindowCommand):
+
+	def run(self, thread_id):
+		manager.temp_folder_id_for_create = thread_id
+		self.window.show_input_panel("Enter file name:", "", self._create_file, None, None)
+
+	def _create_file(self, file_name):
+		folder_id = manager.temp_folder_id_for_create
+		manager.temp_folder_id_for_create = None
+		quip.create_document("", content=file_name, content_type="markdown", folder_id=folder_id)
+		self.window.run_command(COMMAND_SHOW_FILE_TREE)
 
 
 class DeleteDocumentCommand(sublime_plugin.TextCommand):
@@ -209,6 +232,7 @@ class OpenChatCommand(sublime_plugin.WindowCommand):
 			{"messages": [str(m) for m in quip.get_messages(thread)]}
 		)
 
+
 class OpenPreviewCommand(sublime_plugin.WindowCommand):
 
 	def run(self, content, name="Document Preview"): 
@@ -243,6 +267,7 @@ class InsertPreviewCommand(sublime_plugin.TextCommand):
 
 		manager.preview.view.set_read_only(True)
 		manager.preview.view.set_scratch(True)
+
 
 class CloseChatCommand(sublime_plugin.WindowCommand):
 

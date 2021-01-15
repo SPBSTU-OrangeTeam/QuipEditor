@@ -40,6 +40,7 @@ class TabsManager:
         self.comments = dict()
         self._upload_timestamps = dict()
         self.event_propagation = False
+        self.temp_folder_id_for_create = None
 
 
 

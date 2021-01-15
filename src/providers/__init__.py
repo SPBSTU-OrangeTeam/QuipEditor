@@ -23,8 +23,11 @@ class QuipProvider:
     def get_document_content(self, thread_id):
         return self._quip.get_thread(thread_id)["html"]
 
-    def create_document(self, document_name, content, content_type="html"):
-        return self._quip.new_document(content, content_type, document_name)
+    def create_document(self, document_name, content, content_type="html", folder_id=None):
+        if folder_id is None:
+            return self._quip.new_document(content, content_type, document_name)
+        else:
+            return self._quip.new_document(content, content_type, document_name, member_ids=[folder_id])
 
     def edit_document(self, thread_id, content, content_type="html",
                       operation=QuipClient.APPEND, section_id=None):
