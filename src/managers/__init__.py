@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta
+
 TREE_VIEW_TAB_ID = "TREE_VIEW_TAB_ID"
 
 
@@ -17,15 +19,34 @@ class ChatView:
         self.phantoms.extend([phantom, phantom])
 
 
+class Preview:
+
+    def __init__(self, content = None, view=None, name="HTML Preview"):
+        self.content = content
+        self.view = view
+        self.name = name
+        self.phantom = []
+
+        if self.view and self.name:
+            self.view.set_name(name)
+            
+
 class TabsManager:
 
     def __init__(self):
         self._tabs = dict()
         self.chat = ChatView()
+        self.preview = Preview()
         self.comments = dict()
+        self._upload_timestamps = dict()
+        self.event_propagation = False
+        self.temp_folder_id_for_create = None
+
+
 
     def add(self, thread: int, view):
         self._tabs[thread] = view
+        self._upload_timestamps[thread] = datetime.now()
 
     def get_thread(self, view):
         for thread, item in self._tabs.items():
@@ -42,10 +63,16 @@ class TabsManager:
     def set_chat(self, chat):
         self.chat = chat
 
+    def set_preview(self, preview):
+        self.preview = preview
+
     def reset_chat(self):
-        if self.chat and self.chat.id:
+        if self.chat and self.chat.id and not self.chat.is_document:
             self.remove_tab(thread=self.chat.id)
         self.chat = None
+
+    def reset_preview(self):
+        self.preview = None
 
     def remove_tab(self, thread=None, view=None):
         """ You must provide one parameter, though both is fine too """
@@ -55,6 +82,18 @@ class TabsManager:
             self._remove_by_thread(thread)
         if view:
             self._remove_by_view(view)
+
+    def update_debounced(self, thread: int):
+        if self._upload_timestamps[thread] is None:
+            return True
+        print(datetime.now() - self._upload_timestamps[thread])
+        if datetime.now() - self._upload_timestamps[thread] > timedelta(seconds=15):
+            return True
+        return False
+
+    def reset_debounced(self, thread: int):
+        self._upload_timestamps[thread] = datetime.now()
+
 
     def _remove_by_thread(self, thread):
         self._tabs.pop(thread, None)
