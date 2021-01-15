@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 TREE_VIEW_TAB_ID = "TREE_VIEW_TAB_ID"
 
@@ -45,7 +45,7 @@ class TabsManager:
 
     def add(self, thread: int, view):
         self._tabs[thread] = view
-        self._upload_timestamps[thread] = datetime.now().microsecond
+        self._upload_timestamps[thread] = datetime.now()
 
     def get_thread(self, view):
         for thread, item in self._tabs.items():
@@ -85,12 +85,13 @@ class TabsManager:
     def update_debounced(self, thread: int):
         if self._upload_timestamps[thread] is None:
             return True
-        if datetime.now().microsecond - self._upload_timestamps[thread] > 15*1000:
+        print(datetime.now() - self._upload_timestamps[thread])
+        if datetime.now() - self._upload_timestamps[thread] > timedelta(seconds=15):
             return True
         return False
 
     def reset_debounced(self, thread: int):
-        self._upload_timestamps[thread] = datetime.now().microsecond
+        self._upload_timestamps[thread] = datetime.now()
 
 
     def _remove_by_thread(self, thread):
